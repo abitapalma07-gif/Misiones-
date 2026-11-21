@@ -8,6 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script src="firebase-config.js"></script>
 <style>:root{color-scheme:light}body{margin:0}</style>
 <title>Misiones de Amor</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -119,6 +120,7 @@ table.lv{width:100%;border-collapse:collapse;font-size:13px}
 .qb.in{position:static;flex:none}
 .qb[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .qhelp{background:var(--gold-soft);border-radius:12px;padding:12px 14px;font-size:15px}
+.code{font-family:var(--font-display);font-size:30px;letter-spacing:2px;text-align:center;margin:4px 0;word-break:break-all;user-select:all}
 .qhelp p{margin:0 0 6px}
 .qhelp p:last-child{margin:0}
 .qhelp ol,.qhelp ul{margin:4px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:4px}
@@ -283,7 +285,7 @@ function ageHint(age){
 /* ---------- Estado ---------- */
 function nm(v){v=String(v||"").trim().slice(0,30);return isClean(v)?v:""}
 function clean(o){
-  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
+  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
   if(!o||typeof o!=="object")return b;
   b.me=nm(o.me);b.partner=nm(o.partner);
   var p=o.profile;
@@ -322,7 +324,7 @@ function clean(o){
   var idRe=/^[A-Za-z0-9]{6,20}$/;
   if(typeof o.pairId==="string"&&idRe.test(o.pairId)){b.pairId=o.pairId;b.pairName=nm(o.pairName);b.pairBand=BANDS[o.pairBand]?o.pairBand:"";b.pairRel=RELS[o.pairRel]?o.pairRel:"";var pa0=parseInt(o.pairAge,10);b.pairAge=(pa0>=10&&pa0<=99)?pa0:({n:11,t:15,a:25,m:55})[o.pairBand]||0}
   b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
-  b.intro=o.intro===true;
+  b.intro=o.intro===true;b.joinCode=(typeof o.joinCode==="string"&&idRe.test(o.joinCode)&&!b.pairId)?o.joinCode:"";
   b.news=(Array.isArray(o.news)?o.news:[]).filter(function(x){return x&&typeof x.id==="string"&&typeof x.text==="string"&&isClean(x.text)}).map(function(x){return {id:x.id.slice(0,20),text:x.text.slice(0,200),ts:+x.ts||Date.now()}}).slice(-15);
   var st={out:["esperando","aceptada","contra","rechazada","cancelada"],"in":["nueva","aceptada","contra","rechazada","confirmada","cancelada"]};
   (Array.isArray(o.proposals)?o.proposals:[]).forEach(function(x){
@@ -340,7 +342,7 @@ function clean(o){
 }
 function load(){try{var raw=localStorage.getItem(KEY);if(raw)return clean(JSON.parse(raw))}catch(e){}return clean(null)}
 var S=load();
-var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{}};
+var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{},pf:{},pfReq:{},pfMiss:{}};
 var toastTimer=null;
 function save(){
   for(var tries=0;tries<60;tries++){
@@ -473,9 +475,85 @@ function b64(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function compose(type,d,human){
   var env={v:2,pair:S.pairId,from:S.me||"Tu pareja",id:rid()+rid(),t:type,d:d};
   var text="Misiones de Amor: "+human+"\n\nPara usarlo: copia TODO este mensaje, abre la app, ve a Pareja, pégalo y toca Leer mensaje.\nMDA2:"+b64(env);
-  return {title:human,text:text};
+  return {title:human,text:text,env:env};
 }
-function setOut(type,d,human){ui.out=compose(type,d,human)}
+function setOut(type,d,human){ui.out=compose(type,d,human);netSend(ui.out)}
+
+/* ---------- Internet (Firebase). Si no hay configuración, todo sigue por WhatsApp ---------- */
+var Net={ad:null,state:"off",pair:"",unsub:null,dev:""};
+function devId(){try{var d=localStorage.getItem("mda-dev");if(!d){d=rid()+rid();localStorage.setItem("mda-dev",d)}return d}catch(e){return rid()+rid()}}
+function mkFirebase(cfg){
+  var B="https://www.gstatic.com/firebasejs/10.14.1/",F,ad;
+  return Promise.all([import(B+"firebase-app.js"),import(B+"firebase-auth.js"),import(B+"firebase-firestore.js")]).then(function(m){
+    var app=m[0].initializeApp(cfg),auth=m[1].getAuth(app);F=m[2];var db=F.getFirestore(app);
+    return m[1].signInAnonymously(auth).then(function(){
+      return {
+        post:function(pair,x){return F.setDoc(F.doc(db,"pairs",pair,"msgs",x.id),{id:x.id,dev:x.dev,text:x.text,t:Date.now()})},
+        proofPut:function(pair,eid,data){return F.setDoc(F.doc(db,"pairs",pair,"proofs",String(eid)),{data:data,t:Date.now()})},
+        proofGet:function(pair,eid){return F.getDoc(F.doc(db,"pairs",pair,"proofs",String(eid))).then(function(sn){return sn.exists()?sn.data().data:null})},
+        listen:function(pair,cb,err){return F.onSnapshot(F.query(F.collection(db,"pairs",pair,"msgs"),F.orderBy("t")),function(snap){snap.docChanges().forEach(function(c){if(c.type==="added")cb(c.doc.data())})},err)}
+      };
+    });
+  });
+}
+function netInit(){
+  Net.dev=devId();
+  if(window.__MDA_ADAPTER){Net.ad=window.__MDA_ADAPTER;Net.state="ok";netListen();return}
+  var cfg=window.MDA_FB_CONFIG;
+  if(!cfg||!cfg.apiKey||!cfg.projectId)return;
+  Net.state="conectando";
+  try{mkFirebase(cfg).then(function(ad){Net.ad=ad;Net.state="ok";netListen();render()},function(){Net.state="error";render()})}catch(e){Net.state="error"}
+}
+function netPair(){return S.pairId||S.joinCode||""}
+function netStop(){if(Net.unsub){try{Net.unsub()}catch(e){}}Net.unsub=null;Net.pair=""}
+function netListen(){
+  var pr=netPair();
+  if(!pr){netStop();return}
+  if(!Net.ad||Net.pair===pr)return;
+  netStop();Net.pair=pr;
+  try{Net.unsub=Net.ad.listen(pr,netIn,function(){Net.state="error";render()})}catch(e){Net.state="error"}
+}
+function netIn(m){
+  if(!m||m.dev===Net.dev||typeof m.text!=="string"||m.text.length>6000)return;
+  var joining=!!(S.joinCode&&!S.pairName);
+  var r=handleMsg(m.text);
+  if(r.ok){
+    if(S.pairId&&S.joinCode){S.joinCode="";save()}
+    toast(r.msg,4500);render();netListen();
+  }else if(joining&&r.msg&&r.msg.indexOf("ya se había")<0){toast(r.msg,4500)}
+}
+function netSend(o,proof){
+  if(!Net.ad||Net.state!=="ok"||!S.pairId||!o||!o.env)return;
+  var pr=S.pairId,m={id:o.env.id,dev:Net.dev,text:o.text};
+  netListen();
+  var go=function(){return Net.ad.post(pr,m)};
+  var job=proof?Net.ad.proofPut(pr,o.env.d.eid,proof).then(go):go();
+  job.then(function(){o.sent=true;render()},function(){o.sent=false;render()});
+}
+function proofImg(eid){
+  if(ui.pf[eid])return '<img class="shot" alt="Foto de prueba" src="'+ui.pf[eid]+'">';
+  if(Net.state!=="ok"||!S.pairId)return "";
+  if(!ui.pfReq[eid]){
+    ui.pfReq[eid]=1;
+    Net.ad.proofGet(S.pairId,eid).then(function(d){
+      if(typeof d==="string"&&d.length<900000&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(d))ui.pf[eid]=d;else ui.pfMiss[eid]=1;
+      render();
+    },function(){ui.pfMiss[eid]=1;render()});
+  }
+  return ui.pfMiss[eid]?'<p class="hint">La foto no llegó. Pídesela por WhatsApp.</p>':'<p class="hint">Cargando la foto…</p>';
+}
+function onlinePanel(){
+  if(Net.state==="off")return "";
+  if(Net.state==="conectando")return '<div class="banner">Conectando…</div>';
+  if(Net.state==="error")return '<div class="banner bad">No se pudo conectar a internet. Puedes enlazarte con WhatsApp, abajo.</div>';
+  var code=S.pairId||S.joinCode;
+  if(code&&!S.pairName)return '<div class="panel"><h2>Tu código de enlace</h2>'+qb('code')+qh('code')+'<p class="code">'+esc(code)+'</p>'+
+    '<p class="hint">'+(S.joinCode?'Buscando a tu pareja. Revisa que el código esté bien escrito.':'Dale este código a tu pareja. Cuando lo escriba en su app, se enlazan solos.')+'</p>'+
+    '<button class="btn ghost sm" data-a="cancelCode">Cancelar</button></div>';
+  return '<div class="panel"><h2>Enlazarse por internet</h2>'+qb('code')+qh('code')+'<p class="hint">Sin WhatsApp: uno crea un código y el otro lo escribe.</p>'+
+    '<button class="btn" data-a="makeInvite">Crear mi código</button>'+
+    '<form id="joinForm"><label>O escribe el código de tu pareja<input id="jCode" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="Ej: k3m9x2pq7a"></label><button class="btn ghost" type="submit">Unirme</button></form></div>';
+}
 function validCost(c){c=parseInt(c,10);return c>=150&&c<=500||c>=600&&c<=1500?c:0}
 function handleMsg(text){
   var bad=function(m){return {ok:false,msg:m}};
@@ -485,7 +563,7 @@ function handleMsg(text){
   if(!env||env.v!==2||typeof env.t!=="string"||typeof env.id!=="string"||typeof env.pair!=="string"||!/^[A-Za-z0-9]{6,20}$/.test(env.pair)||!env.d||typeof env.d!=="object")return bad("Ese código no es válido.");
   if(S.seen.indexOf(env.id)>=0)return bad("Ese mensaje ya se había leído.");
   var from=nm(env.from)||"Tu pareja",d=env.d,t=env.t,res;
-  function done(msg){S.seen.push(env.id);S.seen=S.seen.slice(-200);addNews(msg);save();return {ok:true,msg:msg}}
+  function done(msg){S.seen.push(env.id);S.seen=S.seen.slice(-600);addNews(msg);save();return {ok:true,msg:msg}}
   if(t==="invite"){
     if(S.pairId&&S.pairName)return bad("Ya estás enlazado con "+S.pairName+". Primero desenlaza en Pareja.");
     if(S.pairId===env.pair)return bad("Ese es tu propio código. Mándaselo a tu pareja.");
@@ -516,8 +594,9 @@ function handleMsg(text){
   if(t==="mrep"){
     var rt=String(d.text||"").trim().slice(0,90);
     if(!rt||!isClean(rt)||typeof d.eid!=="number")return bad("Ese mensaje no es válido.");
+    if(S.reviews.some(function(x){return x.eid===d.eid}))return bad("Ya tenías esa misión por revisar.");
     S.reviews.push({eid:d.eid,from:from,text:rt,pts:Math.max(1,Math.min(200,parseInt(d.pts,10)||5))});
-    return done(from+" te pide revisar una misión. Mira su foto en WhatsApp y respóndele.");
+    return done(from+" te pide revisar una misión. Míralo en Pareja y respóndele.");
   }
   if(t==="mres"){
     var idx=-1;S.log.forEach(function(e,i){if(e.kind==="m"&&e.status==="rev"&&e.ts===d.eid)idx=i});
@@ -566,7 +645,8 @@ function toggle(mid,proof,hash){
   S.log=log;save();
   if(entry&&entry.status==="rev"){
     ui.revMsg[entry.ts]=compose("mrep",{eid:entry.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?");
-    toast("En revisión: manda el mensaje a tu pareja",3500);
+    netSend(ui.revMsg[entry.ts],proof);
+    toast(Net.state==="ok"?"Enviada a tu pareja para que la revise":"En revisión: manda el mensaje a tu pareja",3500);
   }else if(entry){toast("+"+m.pts+" puntos")}
   render();
 }
@@ -614,6 +694,7 @@ var HELP={
  news:'<p>Aquí aparecen las respuestas y los mensajes de tu pareja. Cuando los leas, toca <b>Entendido</b> para borrarlos.</p>',
  out:'<ol><li>Toca <b>Abrir WhatsApp</b>.</li><li>Elige a tu pareja.</li><li>Manda el mensaje tal cual, sin cambiarlo.</li></ol><p>Si no se abre WhatsApp, toca <b>Copiar mensaje</b> y pégalo en el chat.</p>',
  proof:'<ol><li>Toca el cuadro de <b>Foto de prueba</b> y escoge una captura o una foto.</li><li>Espera a que aparezca la vista previa.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>No hace falta que salgan personas. La app no acepta fotos vacías, muy pequeñas ni repetidas.</p>',
+ code:'<ol><li>Uno de los dos toca <b>Crear mi código</b>.</li><li>Le da el código a su pareja (por mensaje, llamada o en persona).</li><li>Tu pareja lo escribe en <b>O escribe el código de tu pareja</b> y toca <b>Unirme</b>.</li></ol><p>Listo: quedan enlazados solos. Después, misiones, fotos y premios se mandan solos, sin WhatsApp.</p><p>El código es privado. No se lo des a nadie más.</p>',
  prem:'<ol><li>Toca <b>Canjear</b> en un premio para el que te alcancen los puntos.</li><li>Toca <b>Confirmar</b>.</li><li>Avisa a tu pareja con el botón de WhatsApp.</li><li>Cuando te lo cumplan, toca <b>Ya se cumplió</b>. El premio vuelve a aparecer.</li></ol><p>Los premios con candado se abren al subir de nivel. <b>Tranquilo</b> cuesta de 150 a 500 puntos y <b>Fuerte</b> de 600 a 1500.</p>',
  pend:'<p>Son premios que ya canjeaste. Toca <b>Avisar</b> para mandarle un WhatsApp a tu pareja. Cuando te lo cumpla, toca <b>Ya se cumplió</b> y el premio vuelve a aparecer en la lista para canjearlo otra vez.</p>',
  reqs:'<p>Aquí ves qué pasó con cada premio que propusiste:</p><ul><li><b>Esperando respuesta:</b> tu pareja aún no contesta.</li><li><b>Aceptado:</b> ya está en la lista de premios.</li><li><b>Pide cambiar los puntos:</b> quiere que cueste más o menos. Tú decides si aceptas.</li><li><b>No aceptado:</b> tu pareja dijo que no.</li></ul><p>Los premios que te propone tu pareja también salen aquí para que los contestes.</p>',
@@ -621,7 +702,7 @@ var HELP={
  link:'<ol><li>Toca <b>Crear mensaje de enlace</b> y mándalo a tu pareja por WhatsApp.</li><li>Tu pareja lo copia, abre la app, va a <b>Pareja</b>, lo pega y toca <b>Leer mensaje</b>.</li><li>Tu pareja te manda otro mensaje. Pégalo aquí y toca <b>Leer mensaje</b>. Listo.</li></ol><p>La app no avisa sola. Cada mensaje va por WhatsApp y la otra persona lo pega en la app.</p>',
  recv:'<ol><li>Tu pareja te manda un mensaje por WhatsApp.</li><li>Cópialo completo.</li><li>Pégalo en el cuadro.</li><li>Toca <b>Leer mensaje</b>.</li></ol><p>Tienes que pegar cada mensaje que te llegue.</p>',
  paired:'<p>Ya están enlazados. Pueden mandarse misiones y premios.</p><p>Tus misiones suman puntos al enviar la foto. Si quieres que tu pareja las revise, lo activas en Ajustes.</p><p><b>Desenlazar</b> borra el enlace.</p>',
- rev:'<ol><li>Tu pareja dice que cumplió una misión.</li><li>Mira la foto que te mandó por WhatsApp.</li><li>Toca <b>Aceptar</b> si cumplió o <b>No cumple</b> si falta algo.</li><li>Manda el mensaje que aparece.</li></ol>',
+ rev:'<ol><li>Tu pareja dice que cumplió una misión.</li><li>Mira su foto. Si hay internet, aparece aquí mismo; si no, te llega por WhatsApp.</li><li>Toca <b>Aceptar</b> si cumplió o <b>No cumple</b> si falta algo.</li><li>Manda el mensaje que aparece.</li></ol>',
  props:'<p>Aquí están los premios que propones y los que te propone tu pareja.</p><ul><li><b>Aceptar:</b> el premio queda aprobado.</li><li><b>Pedir este precio:</b> pides más o menos puntos.</li><li><b>Rechazar:</b> no lo aceptas.</li></ul>',
  sendm:'<ol><li>Escribe qué tiene que hacer tu pareja.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Crear mensaje con la misión</b> y mándalo por WhatsApp.</li></ol><p>Se hace una sola vez. Máximo 5 misiones nuevas por semana. No se permiten groserías, violencia, sexo, drogas ni presión.</p>',
  propform:'<ol><li>Escribe el premio.</li><li>Elige <b>Tranquilo</b> (150 a 500 puntos) o <b>Fuerte</b> (600 a 1500).</li><li>Elige cuántos puntos cuesta.</li><li>Toca <b>Crear mensaje con el premio</b> y mándalo por WhatsApp.</li></ol><p>Tu pareja puede aceptar, rechazar o pedir otro precio. Máximo 10 premios por semana.</p>',
@@ -687,10 +768,11 @@ function viewHero(){
 function revBox(m,en){
   var msg=ui.revMsg[en.ts];
   if(!msg){msg=ui.revMsg[en.ts]=compose("mrep",{eid:en.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?")}
+  var wa='<textarea readonly id="rev-'+en.ts+'">'+esc(msg.text)+'</textarea>'+
+   '<div class="row"><a class="btn" href="'+waLink(msg.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyRev" data-id="'+en.ts+'">Copiar mensaje</button></div>';
+  if(Net.state==="ok")return '<div class="panel revbox"><h3>Tu pareja la está revisando</h3>'+(msg.sent===true?'<div class="banner ok">Enviada ✔ Cuando la acepte, los puntos se suman solos.</div>':(msg.sent===false?'<div class="banner bad">No se pudo enviar. Revisa tu internet o mándala por WhatsApp.</div>':'<p class="hint">Enviando…</p>'))+'<details><summary>Mandarla por WhatsApp (por si acaso)</summary>'+wa+'</details></div>';
   return '<div class="panel revbox"><h3>Manda esto a tu pareja</h3>'+
-   '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Toca <b>Abrir WhatsApp</b> y manda el mensaje.</li><li>Mándale también la foto de prueba en el mismo chat.</li><li>Tu pareja lo pega en la app y te contesta si la acepta. Pega su respuesta en <b>Pareja</b>.</li></ol>'+
-   '<textarea readonly id="rev-'+en.ts+'">'+esc(msg.text)+'</textarea>'+
-   '<div class="row"><a class="btn" href="'+waLink(msg.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyRev" data-id="'+en.ts+'">Copiar mensaje</button></div></div>';
+   '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Toca <b>Abrir WhatsApp</b> y manda el mensaje.</li><li>Mándale también la foto de prueba en el mismo chat.</li><li>Tu pareja lo pega en la app y te contesta si la acepta. Pega su respuesta en <b>Pareja</b>.</li></ol>'+wa+'</div>';
 }
 function missionCard(m,done,custom){
   var en=done[m.id],isDone=!!en,rev=isDone&&en.status==="rev";
@@ -703,9 +785,12 @@ function missionCard(m,done,custom){
 }
 function outBox(){
   if(!ui.out)return "";
-  return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+'<p class="hint">Mándaselo por WhatsApp.</p>'+
-   '<textarea id="outText" readonly>'+esc(ui.out.text)+'</textarea>'+
-   '<div class="row"><a class="btn" href="'+waLink(ui.out.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyOut">Copiar mensaje</button></div>'+
+  var wa='<textarea id="outText" readonly>'+esc(ui.out.text)+'</textarea>'+
+   '<div class="row"><a class="btn" href="'+waLink(ui.out.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyOut">Copiar mensaje</button></div>';
+  if(Net.state==="ok"&&ui.out.env&&S.pairId)return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+
+   (ui.out.sent===true?'<div class="banner ok">Enviado a tu pareja ✔ No hace falta mandarlo por WhatsApp.</div>':(ui.out.sent===false?'<div class="banner bad">No se pudo enviar. Revisa tu internet o mándalo por WhatsApp.</div>':'<p class="hint">Enviando…</p>'))+
+   '<details><summary>Mandarlo por WhatsApp (por si acaso)</summary>'+wa+'</details><button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
+  return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+'<p class="hint">Mándaselo por WhatsApp.</p>'+wa+
    '<button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
 }
 function proofBox(){
@@ -804,11 +889,11 @@ function viewPareja(){
     '<textarea id="inbox" placeholder="Pega aquí el mensaje"></textarea><button class="btn" data-a="readMsg">Leer mensaje</button></div>';
   if(!paired){
     var waiting=S.pairId?'<div class="banner">Ya mandaste tu mensaje. Cuando tu pareja te conteste, pega su mensaje abajo y toca Leer mensaje.</div>':'';
-    return head+out+newsBox()+'<div class="panel"><h2>Enlazarse con tu pareja</h2>'+qb('link')+qh('link')+'<p class="hint">Enlázate para mandarse misiones y premios.</p>'+
+    return head+out+newsBox()+onlinePanel()+'<div class="panel"><h2>Enlazarse con tu pareja</h2>'+qb('link')+qh('link')+'<p class="hint">Enlázate para mandarse misiones y premios.</p>'+
       '<button class="btn" data-a="makeInvite">'+(S.pairId?'Ver mi mensaje otra vez':'Crear mensaje de enlace')+'</button></div>'+waiting+recv;
   }
   var reviews=S.reviews.length?'<div class="panel"><h3>Misiones por revisar</h3>'+qb('rev')+qh('rev')+S.reviews.map(function(r){
-    return '<div class="log"><span class="lg"><span><strong>'+esc(r.from||S.pairName)+'</strong> dice que cumplió: '+esc(r.text)+' (+'+r.pts+'). Mira su foto en WhatsApp.</span></span></div><div class="row"><button class="btn sm" data-a="revOk" data-id="'+r.eid+'">Aceptar</button><button class="btn ghost sm" data-a="revNo" data-id="'+r.eid+'">No cumple</button></div>';
+    return '<div class="log"><span class="lg"><span><strong>'+esc(r.from||S.pairName)+'</strong> dice que cumplió: '+esc(r.text)+' (+'+r.pts+').'+(Net.state==='ok'?'':' Mira su foto en WhatsApp.')+'</span></span></div>'+proofImg(r.eid)+'<div class="row"><button class="btn sm" data-a="revOk" data-id="'+r.eid+'">Aceptar</button><button class="btn ghost sm" data-a="revNo" data-id="'+r.eid+'">No cumple</button></div>';
   }).join("")+'</div>':'';
   var sendM='<form class="panel" id="sendMForm"><h3>Ponerle una misión a '+esc(S.pairName)+'</h3>'+qb('sendm')+qh('sendm')+'<p class="hint">Esta semana te quedan '+cmLeft()+' de 5 misiones nuevas.</p>'+
     '<label>Qué tiene que hacer<input id="sText" maxlength="90" required placeholder="Ej: Mándame un audio con tu canción favorita"></label>'+
@@ -945,9 +1030,9 @@ document.addEventListener("click",function(ev){
     delM:function(){S.customM=S.customM.filter(function(c){return c.id!==id});save();render()},
     resetAsk:function(){ui.resetAsk=true;render()},
     resetNo:function(){ui.resetAsk=false;render()},
-    resetOk:function(){var cm=S.cmCreated,cr=S.crCreated;S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();ui.resetAsk=false;ui.lastRedeem=null;ui.out=null;ui.tab="hoy";render();toast("Datos borrados")},
+    resetOk:function(){var cm=S.cmCreated,cr=S.crCreated;S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();netStop();ui.resetAsk=false;ui.lastRedeem=null;ui.out=null;ui.tab="hoy";render();toast("Datos borrados")},
     makeInvite:function(){
-      if(!S.pairId){S.pairId=rid()+rid();S.pairName="";save()}
+      if(!S.pairId){S.pairId=rid();S.pairName="";S.joinCode="";save()}
       sendOut("invite",{age:S.profile.age,rel:S.profile.rel},"Te invito a enlazarnos en Misiones de Amor.");
     },
     readMsg:function(){
@@ -955,9 +1040,10 @@ document.addEventListener("click",function(ev){
       if(!r.ok){toast(r.msg,4500);return}
       toast(r.msg,4500);render();window.scrollTo(0,0);
     },
+    cancelCode:function(){S.pairId="";S.joinCode="";S.pairName="";save();netStop();ui.out=null;render()},
     unlinkAsk:function(){ui.unlinkAsk=true;render()},
     unlinkNo:function(){ui.unlinkAsk=false;render()},
-    unlinkOk:function(){S.pairId="";S.pairName="";S.pairAge=0;S.pairBand="";S.pairRel="";S.proposals=[];S.reviews=[];ui.unlinkAsk=false;ui.out=null;save();render();toast("Desenlazado")},
+    unlinkOk:function(){S.pairId="";S.joinCode="";S.pairName="";S.pairAge=0;S.pairBand="";S.pairRel="";S.proposals=[];S.reviews=[];ui.unlinkAsk=false;ui.out=null;save();netStop();render();toast("Desenlazado")},
     revOk:function(){var i=-1;S.reviews.forEach(function(r,k){if(String(r.eid)===id)i=k});if(i>=0){S.reviews.splice(i,1);save();sendOut("mres",{eid:+id,ok:true},"Te acepté la misión.")}},
     revNo:function(){var i=-1;S.reviews.forEach(function(r,k){if(String(r.eid)===id)i=k});if(i>=0){S.reviews.splice(i,1);save();sendOut("mres",{eid:+id,ok:false},"No te acepté la misión, falta la prueba.")}},
     propOk:function(){var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="in"&&x.status==="nueva"})[0];if(p){p.status="aceptada";save();sendOut("rres",{id:id,res:"ok"},"Acepto tu premio por "+p.cost+" puntos.")}},
@@ -1004,6 +1090,12 @@ document.addEventListener("input",function(ev){
 });
 document.addEventListener("submit",function(ev){
   ev.preventDefault();var f=ev.target.id;
+  if(f==="joinForm"){
+    var jc=(document.getElementById("jCode").value||"").trim();
+    if(!/^[A-Za-z0-9]{6,20}$/.test(jc)){toast("Escribe el código completo, solo letras y números.",4000);return}
+    if(S.pairId){toast("Ya tienes un código creado. Cancélalo primero.",4000);return}
+    S.joinCode=jc;save();netListen();toast("Buscando a tu pareja…",3000);render();return;
+  }
   if(f==="regForm"||f==="pfForm"){
     var err=applyProfile(f==="regForm"?"reg":"pf");
     if(err){toast(err,4500);return}
@@ -1043,6 +1135,7 @@ document.addEventListener("visibilitychange",function(){
 });
 window.addEventListener("pagehide",doSave);
 var lost0=S.profile.ok?settle():0;
+netInit();
 render();
 if(lost0>0)toast("Perdiste tu racha: "+lost0+" puntos menos",4500);
 })();
