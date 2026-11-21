@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#C7254E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Misiones de Amor">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{color-scheme:light}body{margin:0}</style>
+<title>Misiones de Amor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: app de una columna para celular, encabezado con puntos y nivel, tarjetas de misión y barra inferior de 5 pestañas */
+:root{
+  --bg:#FAF4F5; --surface:#FFFFFF; --ink:#2B1620; --muted:#7A6670; --line:#EBDDE0;
+  --accent:#C7254E; --accent-ink:#FFFFFF; --accent-soft:#FBE3E9;
+  --ok:#1E7B6F; --ok-soft:#DDF1EE; --gold:#9A6200; --gold-soft:#FBEBCB; --bad:#B3261E; --bad-soft:#FBE0DD;
+  --cat-pal:#C7254E; --cat-aud:#9A6200; --cat-lla:#1E7B6F; --cat-det:#4A6A8A;
+  --font-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B0F15; --surface:#28171F; --ink:#F6E9ED; --muted:#B79AA5; --line:#3D2631;
+    --accent:#FF6B8E; --accent-ink:#2B0A14; --accent-soft:#4A1F2D;
+    --ok:#4CC2B0; --ok-soft:#173A36; --gold:#F2B84B; --gold-soft:#41300F; --bad:#FF8A80; --bad-soft:#4A1E1B;
+    --cat-pal:#FF6B8E; --cat-aud:#F2B84B; --cat-lla:#4CC2B0; --cat-det:#8FB3D9;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B0F15; --surface:#28171F; --ink:#F6E9ED; --muted:#B79AA5; --line:#3D2631;
+  --accent:#FF6B8E; --accent-ink:#2B0A14; --accent-soft:#4A1F2D;
+  --ok:#4CC2B0; --ok-soft:#173A36; --gold:#F2B84B; --gold-soft:#41300F; --bad:#FF8A80; --bad-soft:#4A1E1B;
+  --cat-pal:#FF6B8E; --cat-aud:#F2B84B; --cat-lla:#4CC2B0; --cat-det:#8FB3D9;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;
+  padding-block:16px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body[data-big="1"]{font-size:19px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.top{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;font-weight:500}
+.top svg{width:20px;height:20px;color:var(--accent);flex:none}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.score{display:flex;align-items:baseline;gap:8px}
+.score b{font-family:var(--font-display);font-size:56px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)}
+.score span{color:var(--muted);font-weight:500}
+.bar{height:10px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.meta{display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.pill{background:var(--accent-soft);color:var(--ink);border-radius:99px;padding:4px 12px;font-weight:500;font-variant-numeric:tabular-nums}
+.pill.ok{background:var(--ok-soft)} .pill.gold{background:var(--gold-soft)}
+.lvl{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.lvl strong{color:var(--ink)}
+.sec{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sec h2{font-size:20px} .sec small{color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;width:100%;text-align:left;min-width:0}
+.mission{cursor:pointer}
+.mission.star{border-color:var(--gold);background:linear-gradient(0deg,var(--gold-soft),var(--gold-soft)),var(--surface)}
+.chk{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
+.chk svg{width:16px;height:16px}
+.mission.done .chk{background:var(--ok);border-color:var(--ok);color:#fff}
+.mission.rev .chk{background:var(--gold);border-color:var(--gold);color:#fff}
+.mission.done .txt{text-decoration:line-through;color:var(--muted)}
+.body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.txt{font-weight:500;overflow-wrap:anywhere}
+.cat{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.pts{flex:none;font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums}
+.done .pts{color:var(--ok)}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);text-decoration:none;display:inline-block;text-align:center}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:8px 12px;font-size:14px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.reward.locked{opacity:.6}
+.reward .body small{color:var(--muted)}
+.rw-cost{font-family:var(--font-display);font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+.col{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.day{font-family:var(--font-display);font-weight:600;color:var(--muted);margin-top:6px;text-transform:capitalize}
+.log{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.log:last-child{border:0}
+.log .p{font-weight:700;font-variant-numeric:tabular-nums}
+.log .p.neg{color:var(--bad)} .log .p.pos{color:var(--ok)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:500;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:84px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.notice{background:var(--ok-soft);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.banner{background:var(--gold-soft);border-radius:14px;padding:12px 14px;font-size:14px}
+.banner.bad{background:var(--bad-soft)}
+.hint{margin:0;font-size:14px;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:24px 8px}
+.note{font-size:13px;color:var(--muted)}
+.mission.done .note{color:var(--ok)} .mission.rev .note{color:var(--gold)}
+.shot{display:block;width:100%;max-height:360px;object-fit:contain;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.lg{display:flex;align-items:center;gap:10px;min-width:0}
+.thumb{flex:none;width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+.tw{overflow-x:auto}
+table.lv{width:100%;border-collapse:collapse;font-size:13px}
+.lv th,.lv td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lv th{color:var(--muted);font-weight:500}
+.lv tr.cur td{background:var(--accent-soft);font-weight:700}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.steps li{display:flex;gap:12px;align-items:flex-start;font-size:17px}
+.steps .n{flex:none;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--font-display);font-size:16px}
+.stat{font-size:15px;font-weight:500}
+.panel,.hero{position:relative}
+.panel>h2:first-child,.panel>h3:first-child{padding-right:40px}
+.qb{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--accent);font-weight:700;font-size:16px;line-height:1;display:grid;place-items:center;padding:0}
+.qb.in{position:static;flex:none}
+.qb[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.qhelp{background:var(--gold-soft);border-radius:12px;padding:12px 14px;font-size:15px}
+.qhelp p{margin:0 0 6px}
+.qhelp p:last-child{margin:0}
+.qhelp ol,.qhelp ul{margin:4px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.badge{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+nav button{position:relative;background:none;border:0;border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:500;color:var(--muted)}
+nav button svg{width:24px;height:24px}
+nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:16px;font-size:14px;font-weight:500;z-index:30;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+</head><body>
+<div class="wrap" id="app"></div>
+<div id="toast" class="toast" hidden></div>
+<nav aria-label="Secciones" id="navwrap"><div class="in" id="nav"></div></nav>
+
+<script>
+(function(){
+"use strict";
+var KEY="misiones-de-amor-v1";
+var CATS={pal:"Palabras",aud:"Audio",lla:"Llamada",det:"Detalle"};
+var BANDS={n:"Niño",t:"Adolescente",a:"Adulto",m:"Adulto mayor"};
+var RELS={novios:"Novios",quedantes:"Quedantes",amigos:"Amigos",familia:"Familia"};
+
+/* ---------- Filtro de contenido ---------- */
+var BAD_STEMS=["puta","puto","putear","mierd","verga","chinga","chingu","chingon","pendej","cabron","culer","culo","joder","jodid","carajo","marica","maricon","joto","idiot","imbecil","estupid","inutil","asquer","zorra","lacra","mamada","mamon","fuck","shit","bitch","dick","pussy","callate","coger","cogi","sexo","sexual","sexy","desnud","nude","porno","encuer","manose","matar","matarte","matame","asesin","golpear","golpeo","madrear","madriza","violen","amenaz","chantaj","humill","pegarl","patear","insult","odio","odiar","odias","drog","marihuan","mota","weed","cocain","alcohol","borrach","cerveza","chela","tequila","vodka","whisky","mezcal","groser","grosero","vulgar","malcriad","cigarr","fumar","vapear","vape","suicid","autolesion","contrasena","password","obligar","obligo","obligame","controlar","celos","espiar","espia"];
+var BAD_EXACT=["hdp","ptm","csm","ctm","vrg","pack","pedo"];
+var BAD_PHRASES=["cierra la boca","vete a la","tu madre"];
+function norm(t){return String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[@4]/g,"a").replace(/3/g,"e").replace(/[1!|]/g,"i").replace(/0/g,"o").replace(/[$5]/g,"s").replace(/7/g,"t").replace(/(.)\1+/g,"$1")}
+var BAD_NORM=BAD_STEMS.map(norm),BAD_EX_NORM=BAD_EXACT.map(norm),BAD_PH_NORM=BAD_PHRASES.map(norm);
+function isClean(text){
+  var n=norm(text),raw=n.split(/[^a-z0-9]+/).filter(Boolean),tokens=[],i,j,run="";
+  for(i=0;i<=raw.length;i++){
+    if(i<raw.length&&raw[i].length===1){run+=raw[i];continue}
+    if(run.length>=3)tokens.push(run);else if(run)for(j=0;j<run.length;j++)tokens.push(run.charAt(j));
+    run="";if(i<raw.length)tokens.push(raw[i]);
+  }
+  for(i=0;i<tokens.length;i++){
+    if(BAD_EX_NORM.indexOf(tokens[i])>=0)return false;
+    for(j=0;j<BAD_NORM.length;j++){if(tokens[i].indexOf(BAD_NORM[j])===0)return false}
+  }
+  var joined=" "+tokens.join(" ")+" ";
+  for(j=0;j<BAD_PH_NORM.length;j++){if(joined.indexOf(" "+BAD_PH_NORM[j]+" ")>=0)return false}
+  return true;
+}
+var NO_MALO="Ese texto tiene groserías, insultos, violencia, sexo, drogas o presión. Escríbelo de forma amable.";
+
+/* ---------- Misiones: id, categoría, texto, dificultad, tono (a=todos, q=quedantes y novios, n=solo novios), modo (d=se puede a distancia, p=solo en persona), edad mínima ---------- */
+var POOL=[
+ ["p1","pal","Dile 20 palabras bonitas en un mensaje",15,"a","d",0],
+ ["p2","pal","Dile 3 cosas que admiras de su forma de ser",10,"a","d",0],
+ ["p3","pal","Mándale un \"te quiero\" con una razón de verdad",5,"q","d",0],
+ ["p4","pal","Escríbele un mensaje de buenas noches con cariño",5,"a","d",0],
+ ["p5","pal","Recuérdale un momento bonito que vivieron juntos",10,"a","d",0],
+ ["p6","pal","Felicítale por algo que logró, grande o pequeño",10,"a","d",0],
+ ["p7","pal","Hazle un cumplido que no sea sobre su físico",10,"a","d",0],
+ ["p8","pal","Cuéntale qué fue lo primero que te gustó de su forma de ser",10,"q","d",0],
+ ["p9","pal","Escríbele un mini poema o rima de 4 líneas",20,"a","d",0],
+ ["p10","pal","Dile algo que valoras de su amistad",10,"a","d",0],
+ ["p11","pal","Cuéntale un recuerdo gracioso de ustedes",10,"a","d",0],
+ ["p12","pal","Escríbele una carta corta con lo que sientes por él o ella",20,"n","d",0],
+ ["p13","pal","Cuéntale un sueño que tengas para el futuro de ustedes",15,"n","d",0],
+ ["a1","aud","Cántale una canción en un audio",20,"a","d",0],
+ ["a2","aud","Mándale un audio de buenos días con voz de cariño",10,"a","d",0],
+ ["a3","aud","Mándale un audio contándole lo que más te gusta de ustedes",15,"q","d",0],
+ ["a4","aud","Grábale un audio de 1 minuto diciéndole por qué es importante para ti",15,"a","d",0],
+ ["a5","aud","Mándale un audio imitando un personaje para hacerle reír",10,"a","d",0],
+ ["l1","lla","Llámale y habla más de 20 minutos",20,"a","d",0],
+ ["l2","lla","Haz una videollamada de 10 minutos sin usar otra app",15,"a","d",0],
+ ["l3","lla","Llámale solo para decirle que lo piensas",10,"q","d",0],
+ ["l4","lla","Pregúntale cómo estuvo su día y escucha sin interrumpir",10,"a","d",0],
+ ["l5","lla","Jueguen a las 20 preguntas por llamada",15,"a","d",0],
+ ["d1","det","Mándale una foto de algo que te hizo pensar en él o ella",5,"a","d",0],
+ ["d2","det","Dedícale una canción y dile por qué",10,"a","d",0],
+ ["d3","det","Hazle un dibujo, aunque sea sencillo, y mándale la foto",20,"a","d",0],
+ ["d4","det","Escríbele una nota a mano y mándale la foto",20,"a","d",0],
+ ["d5","det","Propón un plan gratis para esta semana",15,"a","d",0],
+ ["d6","det","Mándale un meme que sepas que le va a sacar una risa",5,"a","d",0],
+ ["d7","det","Pregúntale algo que nunca le has preguntado",10,"a","d",0],
+ ["d8","det","Hazle una lista de 5 planes que quieran hacer juntos algún día",15,"a","d",0],
+ ["d9","det","Arma una mini playlist de 5 canciones para él o ella y mándasela",20,"a","d",0],
+ ["d10","det","Mándale una foto de tu lugar favorito de tu casa y cuéntale por qué",10,"a","d",0],
+ ["d11","det","Pregúntale en qué le puedes ayudar esta semana",10,"a","d",0],
+ ["d12","det","Recomiéndale una serie, canción o juego y dile por qué",10,"a","d",0],
+ ["d13","det","Mándale un sticker o gif que lo represente",5,"a","d",0],
+ ["d14","det","Propón un reto amistoso, como adivinar la canción",15,"a","d",0],
+ ["d15","det","Imagina la cita perfecta y descríbesela",15,"q","d",0],
+ ["d16","det","Mándale un mensaje de \"te extraño\" diciendo qué extrañas de él o ella",10,"q","d",0],
+ ["s1","det","Salúdale con un abrazo o un choque de manos, como se sientan cómodos",5,"a","p",0],
+ ["s2","det","Ayúdale con una tarea o pendiente de hoy",15,"a","p",0],
+ ["s3","det","Comparte tu botana o lonche con él o ella",10,"a","p",0],
+ ["s4","det","Camina con él o ella 10 minutos y platiquen",15,"a","p",0],
+ ["s5","aud","Escuchen una canción juntos y comenten qué sintieron",10,"a","p",0],
+ ["s6","pal","Cuéntale un chiste hasta que se ría",5,"a","p",0],
+ ["s7","det","Pregúntale cómo se siente de verdad y escucha 5 minutos",10,"a","p",0],
+ ["s8","pal","Dile en persona 3 cosas que te gustan de él o ella",15,"q","p",0],
+ ["s9","det","Déjale una nota escondida donde la encuentre",10,"q","p",0],
+ ["s10","det","Prepárale un café o un té",10,"a","p",18],
+ ["s11","det","Cocinen algo juntos con lo que haya en casa",20,"a","p",18]
+].map(function(a){return {id:a[0],cat:a[1],text:a[2],w:a[3],tone:a[4],mode:a[5],min:a[6]}});
+
+/* ---------- Premios: id, texto, costo, modo, tono, edad mínima, nivel que lo desbloquea ---------- */
+var REWARDS=[
+ ["r1","Tú eliges la canción que escuchamos juntos en llamada",150,"d","a",0,1],
+ ["r2","Una dedicatoria en audio solo para ti",180,"d","a",0,1],
+ ["r3","Tú eliges la película o serie que vemos a la vez por videollamada",220,"d","a",0,1],
+ ["r4","Un dibujo hecho a mano para ti",260,"d","a",0,1],
+ ["r14","Una carta de amor escrita a mano, con foto",260,"d","n",0,2],
+ ["r5","Una playlist hecha especialmente para ti",300,"d","a",0,1],
+ ["r6","Estudiar o hacer la tarea juntos un rato, tú eliges la materia",350,"p","a",0,2],
+ ["r15","Un video corto de mi parte con un mensaje para ti",400,"d","a",0,2],
+ ["r7","Un paseo corto juntos y tú eliges el camino",450,"p","a",0,2],
+ ["r16","Una tarde de café o chocolate caliente y plática, con lo que haya en casa",450,"p","a",18,2],
+ ["r8","Una noche de videollamada jugando el juego gratis que tú elijas",600,"d","a",0,3],
+ ["r18","Un desayuno juntos hecho con lo que haya en casa",650,"p","q",18,3],
+ ["r9","Una tarde de juegos de mesa o de cartas, tú eliges el juego",700,"p","a",0,3],
+ ["r17","Una cita sencilla en un lugar público, tú eliges el plan",700,"p","n",0,3],
+ ["r10","Ver una película juntos en casa de la familia, tú la eliges",850,"p","a",0,4],
+ ["r19","Una cena casera con lo que haya en casa",900,"p","n",18,4],
+ ["r11","Un detalle hecho por mí con mis propias manos, entregado en persona",1000,"p","a",0,4],
+ ["r12","Una carta escrita a mano y un video con un mensaje largo para ti",1200,"d","a",0,5],
+ ["r20","Una escapada de un día sin gastar: parque, mirador o caminata",1300,"p","a",18,5],
+ ["r13","Un día en el que tú decides todos los planes que hacemos",1500,"p","a",0,6],
+ ["r21","Un día en el que tú decides todos los planes de nuestras llamadas",1500,"d","a",0,6]
+].map(function(a){return {id:a[0],text:a[1],cost:a[2],mode:a[3],tone:a[4],min:a[5],lvl:a[6]}});
+
+/* ---------- Niveles ---------- */
+var LV_MIN=[0,300,800,1500,2500,4000];
+var LV_NAMES={rom:["Chispa","Flechazo","Enamorados","Cómplices","Inseparables","Leyenda"],ami:["Chispa","Compas","Buenos amigos","Cómplices","Inseparables","Leyenda"],fam:["Chispa","Cercanos","Unidos","Cómplices","Inseparables","Leyenda"]};
+function levelOf(v){for(var i=5;i>=0;i--){if(v>=LV_MIN[i])return i+1}return 1}
+function dailyTotal(L){return 50+10*(L-1)}
+function penaltyFor(L){return 20+10*(L-1)}
+function lvName(L){var r=S.profile.rel,k=(r==="novios"||r==="quedantes")?"rom":r==="familia"?"fam":"ami";return LV_NAMES[k][L-1]}
+
+/* ---------- Perfil y reglas por edad ---------- */
+function bandOf(age){return age<13?"n":age<18?"t":age<50?"a":"m"}
+function isMinor(b){return b==="n"||b==="t"}
+function isRom(rel){return rel==="novios"||rel==="quedantes"}
+function toneOK(t){var r=S.profile.rel;var set=r==="novios"?"aqn":r==="quedantes"?"aq":"a";return set.indexOf(t)>=0}
+function itemOK(it){var p=S.profile;return toneOK(it.tone)&&!(p.dist==="lejos"&&it.mode==="p")&&p.age>=it.min}
+function compat(myAge,myRel,thAge,thRel){
+  var mb=bandOf(myAge),tb=bandOf(thAge),gap=Math.abs(myAge-thAge),rom=isRom(myRel)||isRom(thRel);
+  if(isMinor(mb)!==isMinor(tb)){
+    var okFam=myRel==="familia"&&thRel==="familia";
+    var okTeens=myAge>=16&&thAge>=16&&myAge<=19&&thAge<=19;
+    if(!okFam&&!okTeens)return "Por seguridad, la app no enlaza a menores de 18 años con adultos. Solo se puede entre familia, o entre personas de 16 a 19 años.";
+  }
+  if(rom&&(mb==="n"||tb==="n"))return "Para niños de 10 a 12 años la app es solo de amistad o familia.";
+  if(rom&&(isMinor(mb)||isMinor(tb))&&gap>4)return "Entre menores de 18 años, ser novios o quedantes solo se permite con menos de 4 años de diferencia (máximo 4).";
+  return null;
+}
+function ageHint(age){
+  age=+age;if(!age)return "La app es para personas de 10 años o más.";
+  if(age<10)return "La app es para personas de 10 años o más.";
+  var b=bandOf(age);
+  return "Perfil: "+BANDS[b]+". "+({n:"Es solo de amistad o familia, y lo que sea en persona necesita permiso de un adulto.",t:"Puedes elegir novios, quedantes, amigos o familia. Todo es suave. En persona, solo en lugares públicos o con permiso de sus papás.",a:"Están todas las opciones.",m:"Están todas las opciones y la letra se ve más grande."})[b];
+}
+
+/* ---------- Estado ---------- */
+function nm(v){v=String(v||"").trim().slice(0,30);return isClean(v)?v:""}
+function clean(o){
+  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
+  if(!o||typeof o!=="object")return b;
+  b.me=nm(o.me);b.partner=nm(o.partner);
+  var p=o.profile;
+  if(p&&typeof p==="object"){
+    var age=parseInt(p.age,10);
+    if(age>=10&&age<=99&&p.ok){
+      b.profile.ok=true;b.profile.age=age;
+      b.profile.rel=RELS[p.rel]?p.rel:"amigos";
+      b.profile.dist=p.dist==="cerca"?"cerca":"lejos";
+      if(bandOf(age)==="n"&&isRom(b.profile.rel))b.profile.rel="amigos";
+    }
+  }
+  var dayRe=/^\d{4}-\d{2}-\d{2}$/;
+  (Array.isArray(o.log)?o.log:[]).forEach(function(e){
+    if(!e||typeof e.pts!=="number"||!isFinite(e.pts)||typeof e.day!=="string"||!dayRe.test(e.day)||typeof e.text!=="string")return;
+    if("mrfpb".indexOf(e.kind)<0||String(e.kind).length!==1)return;
+    var x={kind:e.kind,text:e.text.slice(0,120),pts:Math.round(e.pts),day:e.day,ts:typeof e.ts==="number"?e.ts:Date.now()};
+    if(typeof e.mid==="string")x.mid=e.mid.slice(0,40);
+    if(typeof e.proof==="string"&&e.proof.indexOf("data:image/jpeg;base64,")===0)x.proof=e.proof;
+    if(e.status==="rev")x.status="rev";
+    if(typeof e.hash==="string"&&/^[0-9a-f]{64}$/.test(e.hash))x.hash=e.hash;
+    b.log.push(x);
+  });
+  (Array.isArray(o.customM)?o.customM:[]).forEach(function(c){
+    if(!c||typeof c.id!=="string"||!CATS[c.cat]||typeof c.text!=="string"||!isClean(c.text))return;
+    var x={id:c.id.slice(0,40),cat:c.cat,text:c.text.slice(0,90),pts:Math.max(1,Math.min(20,parseInt(c.pts,10)||10))};
+    if(c.from)x.from=nm(c.from);
+    b.customM.push(x);
+  });
+  (Array.isArray(o.customR)?o.customR:[]).forEach(function(c){
+    if(!c||typeof c.id!=="string"||typeof c.text!=="string"||!isClean(c.text))return;
+    b.customR.push({id:c.id.slice(0,40),text:c.text.slice(0,90),cost:Math.max(150,Math.min(1500,parseInt(c.cost,10)||150))});
+  });
+  ["cmCreated","crCreated"].forEach(function(k){b[k]=(Array.isArray(o[k])?o[k]:[]).filter(function(t){return typeof t==="number"}).slice(-300)});
+  (Array.isArray(o.pending)?o.pending:[]).forEach(function(x){if(x&&typeof x.rid==="string"&&typeof x.text==="string")b.pending.push({rid:x.rid,text:x.text.slice(0,90),cost:+x.cost||0,ts:+x.ts||Date.now()})});
+  var idRe=/^[A-Za-z0-9]{6,20}$/;
+  if(typeof o.pairId==="string"&&idRe.test(o.pairId)){b.pairId=o.pairId;b.pairName=nm(o.pairName);b.pairBand=BANDS[o.pairBand]?o.pairBand:"";b.pairRel=RELS[o.pairRel]?o.pairRel:"";var pa0=parseInt(o.pairAge,10);b.pairAge=(pa0>=10&&pa0<=99)?pa0:({n:11,t:15,a:25,m:55})[o.pairBand]||0}
+  b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
+  b.intro=o.intro===true;
+  b.news=(Array.isArray(o.news)?o.news:[]).filter(function(x){return x&&typeof x.id==="string"&&typeof x.text==="string"&&isClean(x.text)}).map(function(x){return {id:x.id.slice(0,20),text:x.text.slice(0,200),ts:+x.ts||Date.now()}}).slice(-15);
+  var st={out:["esperando","aceptada","contra","rechazada","cancelada"],"in":["nueva","aceptada","contra","rechazada","confirmada","cancelada"]};
+  (Array.isArray(o.proposals)?o.proposals:[]).forEach(function(x){
+    if(!x||typeof x.id!=="string"||(x.dir!=="out"&&x.dir!=="in")||typeof x.text!=="string"||!isClean(x.text)||st[x.dir].indexOf(x.status)<0)return;
+    var y={id:x.id.slice(0,40),dir:x.dir,text:x.text.slice(0,90),cost:Math.max(150,Math.min(1500,parseInt(x.cost,10)||150)),status:x.status,from:nm(x.from)};
+    if(x.counter)y.counter=Math.max(150,Math.min(1500,parseInt(x.counter,10)||150));
+    b.proposals.push(y);
+  });
+  (Array.isArray(o.reviews)?o.reviews:[]).forEach(function(x){
+    if(x&&typeof x.eid==="number"&&typeof x.text==="string"&&isClean(x.text))b.reviews.push({eid:x.eid,from:nm(x.from),text:x.text.slice(0,90),pts:Math.max(1,Math.min(200,parseInt(x.pts,10)||5))});
+  });
+  b.seen=(Array.isArray(o.seen)?o.seen:[]).filter(function(t){return typeof t==="string"}).slice(-200);
+  b.savedAt=typeof o.savedAt==="number"?o.savedAt:0;
+  return b;
+}
+function load(){try{var raw=localStorage.getItem(KEY);if(raw)return clean(JSON.parse(raw))}catch(e){}return clean(null)}
+var S=load();
+var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{}};
+var toastTimer=null;
+function save(){
+  for(var tries=0;tries<60;tries++){
+    try{localStorage.setItem(KEY,JSON.stringify(S));return}catch(e){
+      if(!(e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014)))return;
+      var i=-1;for(var j=0;j<S.log.length;j++){if(S.log[j].proof){i=j;break}}
+      if(i<0)return;delete S.log[i].proof;
+    }
+  }
+}
+function addNews(t){S.news.push({id:rid(),text:String(t).slice(0,200),ts:Date.now()});S.news=S.news.slice(-15)}
+function doSave(){S.savedAt=Date.now();save()}
+function readProof(file,cb){
+  var fail=function(m){cb(null,m)};
+  var fr=new FileReader();
+  fr.onload=function(){var img=new Image();
+    img.onload=function(){
+      if(Math.max(img.width,img.height)<300){fail("La foto es muy pequeña. Sube una captura o una foto más grande.");return}
+      var s=Math.min(1,720/Math.max(img.width,img.height));
+      var w=Math.max(1,Math.round(img.width*s)),h=Math.max(1,Math.round(img.height*s));
+      var c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);
+      var g=document.createElement("canvas");g.width=17;g.height=16;var gx=g.getContext("2d");gx.drawImage(img,0,0,17,16);
+      var px=gx.getImageData(0,0,17,16).data,gray=[],sum=0,sq=0,i,j;
+      for(i=0;i<272;i++){var v=0.299*px[i*4]+0.587*px[i*4+1]+0.114*px[i*4+2];gray.push(v);sum+=v;sq+=v*v}
+      var mean=sum/272,sd=Math.sqrt(Math.max(0,sq/272-mean*mean));
+      if(sd<6){fail("La foto se ve vacía o de un solo color. Sube una captura o una foto real.");return}
+      var bits="";for(i=0;i<16;i++)for(j=0;j<16;j++)bits+=gray[i*17+j]>gray[i*17+j+1]?"1":"0";
+      var hex="";for(i=0;i<256;i+=4)hex+=parseInt(bits.substr(i,4),2).toString(16);
+      cb(c.toDataURL("image/jpeg",0.65),null,hex);
+    };
+    img.onerror=function(){fail("No se pudo leer esa foto. Prueba con otra.")};img.src=fr.result};
+  fr.onerror=function(){fail("No se pudo leer esa foto. Prueba con otra.")};fr.readAsDataURL(file);
+}
+function hamming(a,b){var d=0;for(var i=0;i<a.length;i++){var x=parseInt(a.charAt(i),16)^parseInt(b.charAt(i),16);while(x){d+=x&1;x>>=1}}return d}
+function dupProof(hex){return S.log.some(function(e){return e.hash&&hamming(e.hash,hex)<=4})}
+function timeStr(t){return new Date(t).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
+function copyText(t,ok,fail){try{navigator.clipboard.writeText(t).then(ok,fail)}catch(e){fail()}}
+function dayKey(d){d=d||new Date();var m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(x<10?"0":"")+x}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function rid(){var c="abcdefghijkmnpqrstuvwxyz23456789",s="";for(var i=0;i<10;i++)s+=c.charAt(Math.floor(Math.random()*c.length));return s}
+function weekStart(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()}
+function crLeft(){var w=weekStart();return Math.max(0,10-S.crCreated.filter(function(t){return t>=w}).length)}
+function cmLeft(){var w=weekStart();return Math.max(0,5-S.cmCreated.filter(function(t){return t>=w}).length)}
+function toast(t,ms){
+  var el=document.getElementById("toast");el.textContent=t;el.hidden=false;
+  clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.hidden=true},ms||2400);
+}
+function waLink(text){return "https://wa.me/?text="+encodeURIComponent(text)}
+
+/* ---------- Puntos, nivel, racha ---------- */
+function balance(log){return log.reduce(function(a,e){return a+(e.status==="rev"?0:e.pts)},0)}
+function earnedVal(log,before){return log.reduce(function(a,e){return a+((e.pts>0&&e.status!=="rev"&&(!before||e.day<before))?e.pts:0)},0)}
+function rng(seed){var h=0;for(var i=0;i<seed.length;i++){h=Math.imul(31,h)+seed.charCodeAt(i)|0}
+  return function(){h|=0;h=h+0x6D2B79F5|0;var t=Math.imul(h^h>>>15,1|h);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,r){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+var pickMemo={},pickSig="";
+function picksFor(date,extra){
+  var p=S.profile,sig=p.rel+p.dist+(p.age>=18?"A":"M");
+  if(sig!==pickSig){pickMemo={};pickSig=sig}
+  var pool=POOL.filter(itemOK),cur=new Date(2026,0,1),prevIds={},end=dayKey(date);
+  function base(key){var r=rng(key),sh=shuffle(pool,r);return {sh:sh,n:5+Math.floor(r()*3)}}
+  if(date<cur){var b0=base(end);return b0.sh.slice(0,b0.n)}
+  for(var i=0;i<5000;i++){
+    var key=dayKey(cur),b=base(key);
+    var list=pickMemo[key];
+    if(!list){list=b.sh.filter(function(m){return !prevIds[m.id]}).slice(0,b.n);pickMemo[key]=list}
+    if(key===end){
+      var inList={};list.forEach(function(m){inList[m.id]=1});
+      return list.concat(b.sh.filter(function(m){return !inList[m.id]&&!prevIds[m.id]}).slice(0,extra));
+    }
+    prevIds={};list.forEach(function(m){prevIds[m.id]=1});
+    cur.setDate(cur.getDate()+1);
+  }
+  return pickMemo[end]||[];
+}
+/* El nivel que cuenta para las misiones del día es el que tenías al empezar el día */
+function dayLevel(){return levelOf(earnedVal(S.log,dayKey()))}
+function todayMissions(){
+  var L=dayLevel(),total=dailyTotal(L),picks=picksFor(new Date(),Math.floor((L-1)/2)),base=3,rest=total-base*picks.length;
+  var W=picks.reduce(function(a,m){return a+m.w},0)||1;
+  var out=picks.map(function(m){var raw=rest*m.w/W,fl=Math.floor(raw);return {id:m.id,cat:m.cat,text:m.text,pts:base+fl,frac:raw-fl,mode:m.mode}});
+  var left=total-out.reduce(function(a,m){return a+m.pts},0);
+  out.slice().sort(function(a,b){return b.frac-a.frac}).slice(0,left).forEach(function(m){m.pts++});
+  var top=0;out.forEach(function(m,i){if(m.pts>out[top].pts)top=i});
+  if(out.length)out[top].star=true;
+  out.forEach(function(m){delete m.frac});
+  return out;
+}
+function customActive(){
+  var k=dayKey(),usedBefore={};
+  S.log.forEach(function(e){if(e.kind==="m"&&e.day!==k&&e.mid)usedBefore[e.mid]=1});
+  return S.customM.filter(function(c){return !usedBefore[c.id]});
+}
+function allMissions(){return todayMissions().concat(customActive())}
+function doneToday(){var k=dayKey(),o={};S.log.forEach(function(e){if(e.kind==="m"&&e.day===k)o[e.mid]=e});return o}
+function streak(){
+  var counts={};S.log.forEach(function(e){if(e.kind==="m")counts[e.day]=(counts[e.day]||0)+1});
+  var d=new Date(),n=0;
+  if((counts[dayKey(d)]||0)<3)d.setDate(d.getDate()-1);
+  while((counts[dayKey(d)]||0)>=3){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function todayCount(){return Object.keys(doneToday()).length}
+/* Si un día pasa sin 3 misiones y había racha, se pierden puntos según el nivel */
+function settle(){
+  var first=null,counts={},pen={};
+  S.log.forEach(function(e){if(!first||e.day<first)first=e.day;if(e.kind==="m")counts[e.day]=(counts[e.day]||0)+1;if(e.kind==="p")pen[e.day]=1});
+  if(!first)return 0;
+  var p=first.split("-"),d=new Date(+p[0],+p[1]-1,+p[2]),today=dayKey(),run=0,lost=0,guard=0;
+  while(dayKey(d)<today&&guard++<900){
+    var k=dayKey(d),c=counts[k]||0;
+    if(c>=3){run++}
+    else{
+      if(run>=1&&!pen[k]){
+        var L=levelOf(earnedVal(S.log,k)),amt=Math.max(0,Math.min(penaltyFor(L),balance(S.log)));
+        S.log.push({kind:"p",text:"Perdiste tu racha de "+run+(run===1?" día":" días"),pts:-amt,day:k,ts:new Date(d.getFullYear(),d.getMonth(),d.getDate(),23,59,0).getTime()});
+        pen[k]=1;lost+=amt;
+      }
+      run=0;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  if(lost>0)save();
+  return lost;
+}
+function reviewOn(){return !!(S.pairId&&S.pairName&&S.review)}
+
+/* ---------- Mensajes entre los dos teléfonos (códigos por WhatsApp) ---------- */
+function b64(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
+function compose(type,d,human){
+  var env={v:2,pair:S.pairId,from:S.me||"Tu pareja",id:rid()+rid(),t:type,d:d};
+  var text="Misiones de Amor: "+human+"\n\nPara usarlo: copia TODO este mensaje, abre la app, ve a Pareja, pégalo y toca Leer mensaje.\nMDA2:"+b64(env);
+  return {title:human,text:text};
+}
+function setOut(type,d,human){ui.out=compose(type,d,human)}
+function validCost(c){c=parseInt(c,10);return c>=150&&c<=500||c>=600&&c<=1500?c:0}
+function handleMsg(text){
+  var bad=function(m){return {ok:false,msg:m}};
+  var m=/MDA2:([A-Za-z0-9+\/=]+)/.exec(String(text||""));
+  if(!m)return bad("No encontré un código válido en ese mensaje.");
+  var env;try{env=JSON.parse(decodeURIComponent(escape(atob(m[1]))))}catch(e){return bad("El código está incompleto. Copia el mensaje completo.")}
+  if(!env||env.v!==2||typeof env.t!=="string"||typeof env.id!=="string"||typeof env.pair!=="string"||!/^[A-Za-z0-9]{6,20}$/.test(env.pair)||!env.d||typeof env.d!=="object")return bad("Ese código no es válido.");
+  if(S.seen.indexOf(env.id)>=0)return bad("Ese mensaje ya se había leído.");
+  var from=nm(env.from)||"Tu pareja",d=env.d,t=env.t,res;
+  function done(msg){S.seen.push(env.id);S.seen=S.seen.slice(-200);addNews(msg);save();return {ok:true,msg:msg}}
+  if(t==="invite"){
+    if(S.pairId&&S.pairName)return bad("Ya estás enlazado con "+S.pairName+". Primero desenlaza en Pareja.");
+    if(S.pairId===env.pair)return bad("Ese es tu propio código. Mándaselo a tu pareja.");
+    var ag=parseInt(d.age,10);
+    if(!(ag>=10&&ag<=99)||!RELS[d.rel])return bad("Ese código no es válido.");
+    var why=compat(S.profile.age,S.profile.rel,ag,d.rel);
+    if(why)return bad(why);
+    S.pairId=env.pair;S.pairName=from;S.pairAge=ag;S.pairBand=bandOf(ag);S.pairRel=d.rel;
+    setOut("join",{age:S.profile.age,rel:S.profile.rel},"Ya me enlacé contigo, "+from+".");
+    return done("Enlazado con "+from+". Mándale el mensaje de confirmación que apareció arriba.");
+  }
+  if(t==="join"){
+    if(!S.pairId||S.pairId!==env.pair||S.pairName)return bad("Ese mensaje no corresponde a tu invitación.");
+    var ag2=parseInt(d.age,10);
+    if(!(ag2>=10&&ag2<=99)||!RELS[d.rel])return bad("Ese código no es válido.");
+    var why2=compat(S.profile.age,S.profile.rel,ag2,d.rel);
+    if(why2){S.pairId="";return done("No se pudo enlazar. "+why2)}
+    S.pairName=from;S.pairAge=ag2;S.pairBand=bandOf(ag2);S.pairRel=d.rel;
+    return done("Listo, ya están enlazados "+S.me+" y "+from+".");
+  }
+  if(!S.pairId||!S.pairName||S.pairId!==env.pair)return bad("Ese mensaje es de otra pareja o todavía no están enlazados.");
+  if(t==="mission"){
+    var mt=String(d.text||"").trim().slice(0,90);
+    if(!mt||!isClean(mt)||!CATS[d.cat])return bad("Esa misión no se puede aceptar porque tiene palabras que la app no permite.");
+    S.customM.push({id:"r"+env.id,cat:d.cat,text:mt,pts:Math.max(1,Math.min(20,parseInt(d.pts,10)||10)),from:from});
+    return done(from+" te puso una misión nueva. La ves en Hoy.");
+  }
+  if(t==="mrep"){
+    var rt=String(d.text||"").trim().slice(0,90);
+    if(!rt||!isClean(rt)||typeof d.eid!=="number")return bad("Ese mensaje no es válido.");
+    S.reviews.push({eid:d.eid,from:from,text:rt,pts:Math.max(1,Math.min(200,parseInt(d.pts,10)||5))});
+    return done(from+" te pide revisar una misión. Mira su foto en WhatsApp y respóndele.");
+  }
+  if(t==="mres"){
+    var idx=-1;S.log.forEach(function(e,i){if(e.kind==="m"&&e.status==="rev"&&e.ts===d.eid)idx=i});
+    if(idx<0)return bad("Esa misión ya no está en revisión.");
+    if(d.ok){delete S.log[idx].status;return done(from+" aceptó tu misión. Ganaste +"+S.log[idx].pts+" puntos.")}
+    var tx=S.log[idx].text;S.log.splice(idx,1);return done(from+" no aceptó la misión \""+tx+"\". Falta la prueba.");
+  }
+  if(t==="rprop"){
+    var pt=String(d.text||"").trim().slice(0,90),pc=validCost(d.cost);
+    if(!pt||!isClean(pt)||!pc||typeof d.id!=="string")return bad("Ese premio no se puede aceptar porque no cumple las reglas de la app.");
+    S.proposals.push({id:d.id.slice(0,40),dir:"in",text:pt,cost:pc,status:"nueva",from:from});
+    return done(from+" propone un premio. Respóndele en Pareja.");
+  }
+  if(t==="rres"){
+    var pr=S.proposals.filter(function(x){return x.dir==="out"&&x.id===d.id&&x.status==="esperando"})[0];
+    if(!pr)return bad("Esa propuesta ya no está esperando respuesta.");
+    if(d.res==="ok"){pr.status="aceptada";S.customR.push({id:"x"+pr.id,text:pr.text,cost:pr.cost});return done(from+" aceptó tu premio por "+pr.cost+" puntos. Ya está en Premios.")}
+    if(d.res==="counter"){var cc=validCost(d.cost);if(!cc)return bad("El precio que pide no es válido.");pr.status="contra";pr.counter=cc;return done(from+" pide "+cc+" puntos por tu premio. Decide en Pareja.")}
+    if(d.res==="no"){pr.status="rechazada";return done(from+" no aceptó tu premio.")}
+    return bad("Ese mensaje no es válido.");
+  }
+  if(t==="rfin"){
+    var pi=S.proposals.filter(function(x){return x.dir==="in"&&x.id===d.id&&x.status==="contra"})[0];
+    if(!pi)return bad("Esa propuesta ya no está esperando.");
+    pi.status=d.res==="ok"?"confirmada":"cancelada";
+    return done(d.res==="ok"?from+" aceptó el precio que pediste.":from+" canceló el premio.");
+  }
+  return bad("Ese mensaje no es válido.");
+}
+
+/* ---------- Acciones ---------- */
+function toggle(mid,proof,hash){
+  var all=allMissions();
+  var m=all.filter(function(x){return x.id===mid})[0];if(!m)return;
+  var k=dayKey(),log=S.log.slice(),idx=-1;
+  log.forEach(function(e,i){if(e.kind==="m"&&e.day===k&&e.mid===mid)idx=i});
+  if(idx<0&&!proof){toast("Sin foto de prueba no cuenta la misión");return}
+  var entry=null;
+  if(idx>=0)log.splice(idx,1);
+  else{
+    entry={kind:"m",mid:mid,text:m.text,pts:m.pts,day:k,ts:Date.now(),proof:proof,hash:hash};
+    if(reviewOn())entry.status="rev";
+    log.push(entry);
+  }
+  if(balance(log)<0){toast("Ya gastaste esos puntos en un premio");return}
+  S.log=log;save();
+  if(entry&&entry.status==="rev"){
+    ui.revMsg[entry.ts]=compose("mrep",{eid:entry.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?");
+    toast("En revisión: manda el mensaje a tu pareja",3500);
+  }else if(entry){toast("+"+m.pts+" puntos")}
+  render();
+}
+function allRewards(){
+  var cat=REWARDS.filter(itemOK).map(function(r){return {id:r.id,text:r.text,cost:r.cost,mode:r.mode,lvl:r.lvl}});
+  return cat.concat(S.customR.map(function(c){return {id:c.id,text:c.text,cost:c.cost,custom:true,lvl:1}}));
+}
+function redeem(id){
+  var r=allRewards().filter(function(x){return x.id===id})[0];
+  if(!r||balance(S.log)<r.cost||levelOf(earnedVal(S.log))<r.lvl)return;
+  S.log.push({kind:"r",text:"Premio: "+r.text,pts:-r.cost,day:dayKey(),ts:Date.now()});
+  S.pending.push({rid:r.id,text:r.text,cost:r.cost,ts:Date.now()});
+  save();ui.confirm=null;ui.lastRedeem=r;render();window.scrollTo(0,0);
+}
+function applyProfile(px,first){
+  function v(id){return document.getElementById(px+id)}
+  var me=v("Me").value.trim(),pa=v("Partner").value.trim(),age=parseInt(v("Age").value,10),rel=v("Rel").value,dist=v("Dist").value;
+  if(!isClean(me)||!isClean(pa))return NO_MALO;
+  if(!me||!pa)return "Escribe tu nombre y el de la otra persona.";
+  if(!(age>=10&&age<=99))return "La app es para personas de 10 años o más.";
+  var b=bandOf(age);
+  if(b==="n"&&isRom(rel))return "Para tu edad la app es solo de amistad o familia.";
+  if(S.pairId&&S.pairName){var why=compat(age,rel,S.pairAge,S.pairRel);if(why)return why}
+  S.me=me.slice(0,30);S.partner=pa.slice(0,30);
+  S.profile={ok:true,age:age,rel:rel,dist:dist==="cerca"?"cerca":"lejos"};
+  var rv=document.getElementById(px+"Review");if(rv)S.review=rv.checked;
+  save();return null;
+}
+
+/* ---------- Vistas ---------- */
+var ICON={
+ heart:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.8 8.1 2.7 4.5 6.2 4.5c2 0 3.5 1.1 4.3 2.4l1.5 2.2 1.5-2.2c.8-1.3 2.3-2.4 4.3-2.4 3.5 0 5.4 3.6 3.8 7.2C19.5 16.4 12 21 12 21z"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+ hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M8.5 13.5l2.5 2.5 4.5-5"/></svg>',
+ premios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5C10 8.5 8 7.5 8 6s1.5-2 2.5-1.5S12 7 12 8.5zm0 0c2 0 4-1 4-2.5s-1.5-2-2.5-1.5S12 7 12 8.5z"/></svg>',
+ pareja:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 19c.5-3.2 2.7-5 5.5-5s5 1.8 5.5 5M15 14.2c.7-.2 1.3-.3 2-.3 2.2 0 3.6 1.4 4 4.1"/></svg>',
+ progreso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V5M16 20v-7M22 20H2"/></svg>',
+ ajustes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>'
+};
+
+var HELP={
+ hero:'<p>Aquí ves cómo vas.</p><ul><li><b>Puntos:</b> los ganas con misiones y los gastas en premios.</li><li><b>Nivel:</b> sube con los puntos que has ganado en total. No baja si gastas puntos.</li><li><b>Racha:</b> días seguidos con 3 misiones o más. Si pasa un día sin hacerlas, la pierdes y te quitan puntos.</li><li><b>Guardar progreso:</b> guarda tu avance y copia un código de respaldo.</li></ul>',
+ missions:'<ol><li>Cada día salen misiones nuevas. Suben con tu nivel.</li><li>Toca una misión.</li><li>Sube una foto de prueba: una captura del chat, del audio o de la llamada.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>La misión con estrella vale más. Los puntos cuentan al enviar la foto.</p>',
+ newm:'<p>Son misiones que tú o tu pareja crearon. Se hacen una sola vez y luego desaparecen.</p>',
+ news:'<p>Aquí aparecen las respuestas y los mensajes de tu pareja. Cuando los leas, toca <b>Entendido</b> para borrarlos.</p>',
+ out:'<ol><li>Toca <b>Abrir WhatsApp</b>.</li><li>Elige a tu pareja.</li><li>Manda el mensaje tal cual, sin cambiarlo.</li></ol><p>Si no se abre WhatsApp, toca <b>Copiar mensaje</b> y pégalo en el chat.</p>',
+ proof:'<ol><li>Toca el cuadro de <b>Foto de prueba</b> y escoge una captura o una foto.</li><li>Espera a que aparezca la vista previa.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>No hace falta que salgan personas. La app no acepta fotos vacías, muy pequeñas ni repetidas.</p>',
+ prem:'<ol><li>Toca <b>Canjear</b> en un premio para el que te alcancen los puntos.</li><li>Toca <b>Confirmar</b>.</li><li>Avisa a tu pareja con el botón de WhatsApp.</li><li>Cuando te lo cumplan, toca <b>Ya se cumplió</b>. El premio vuelve a aparecer.</li></ol><p>Los premios con candado se abren al subir de nivel. <b>Tranquilo</b> cuesta de 150 a 500 puntos y <b>Fuerte</b> de 600 a 1500.</p>',
+ pend:'<p>Son premios que ya canjeaste. Toca <b>Avisar</b> para mandarle un WhatsApp a tu pareja. Cuando te lo cumpla, toca <b>Ya se cumplió</b> y el premio vuelve a aparecer en la lista para canjearlo otra vez.</p>',
+ reqs:'<p>Aquí ves qué pasó con cada premio que propusiste:</p><ul><li><b>Esperando respuesta:</b> tu pareja aún no contesta.</li><li><b>Aceptado:</b> ya está en la lista de premios.</li><li><b>Pide cambiar los puntos:</b> quiere que cueste más o menos. Tú decides si aceptas.</li><li><b>No aceptado:</b> tu pareja dijo que no.</li></ul><p>Los premios que te propone tu pareja también salen aquí para que los contestes.</p>',
+ newprize:'<ol><li>Ve a <b>Pareja</b>.</li><li>Llena <b>Proponer un premio</b>.</li><li>Manda el mensaje por WhatsApp.</li><li>Tu pareja decide. Verás su respuesta en Premios.</li></ol>',
+ link:'<ol><li>Toca <b>Crear mensaje de enlace</b> y mándalo a tu pareja por WhatsApp.</li><li>Tu pareja lo copia, abre la app, va a <b>Pareja</b>, lo pega y toca <b>Leer mensaje</b>.</li><li>Tu pareja te manda otro mensaje. Pégalo aquí y toca <b>Leer mensaje</b>. Listo.</li></ol><p>La app no avisa sola. Cada mensaje va por WhatsApp y la otra persona lo pega en la app.</p>',
+ recv:'<ol><li>Tu pareja te manda un mensaje por WhatsApp.</li><li>Cópialo completo.</li><li>Pégalo en el cuadro.</li><li>Toca <b>Leer mensaje</b>.</li></ol><p>Tienes que pegar cada mensaje que te llegue.</p>',
+ paired:'<p>Ya están enlazados. Pueden mandarse misiones y premios.</p><p>Tus misiones suman puntos al enviar la foto. Si quieres que tu pareja las revise, lo activas en Ajustes.</p><p><b>Desenlazar</b> borra el enlace.</p>',
+ rev:'<ol><li>Tu pareja dice que cumplió una misión.</li><li>Mira la foto que te mandó por WhatsApp.</li><li>Toca <b>Aceptar</b> si cumplió o <b>No cumple</b> si falta algo.</li><li>Manda el mensaje que aparece.</li></ol>',
+ props:'<p>Aquí están los premios que propones y los que te propone tu pareja.</p><ul><li><b>Aceptar:</b> el premio queda aprobado.</li><li><b>Pedir este precio:</b> pides más o menos puntos.</li><li><b>Rechazar:</b> no lo aceptas.</li></ul>',
+ sendm:'<ol><li>Escribe qué tiene que hacer tu pareja.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Crear mensaje con la misión</b> y mándalo por WhatsApp.</li></ol><p>Se hace una sola vez. Máximo 5 misiones nuevas por semana. No se permiten groserías, violencia, sexo, drogas ni presión.</p>',
+ propform:'<ol><li>Escribe el premio.</li><li>Elige <b>Tranquilo</b> (150 a 500 puntos) o <b>Fuerte</b> (600 a 1500).</li><li>Elige cuántos puntos cuesta.</li><li>Toca <b>Crear mensaje con el premio</b> y mándalo por WhatsApp.</li></ol><p>Tu pareja puede aceptar, rechazar o pedir otro precio. Máximo 10 premios por semana.</p>',
+ lvl:'<ul><li><b>Desde:</b> puntos ganados en total para llegar al nivel.</li><li><b>Al día:</b> puntos que dan las misiones de cada día.</li><li><b>Racha:</b> puntos que pierdes si se rompe la racha.</li><li><b>Premios:</b> cuántos premios nuevos se abren.</li></ul><p>Gastar puntos en premios no te baja de nivel. El nivel nuevo se aplica a las misiones del día siguiente. Un día cuenta para la racha si haces 3 misiones.</p>',
+ hist:'<p>Aquí ves lo que has ganado y gastado. Las misiones en revisión todavía no suman puntos.</p>',
+ prof:'<p>Con tu edad, lo que son y si se ven en persona, la app elige las misiones y premios que te sirven. Si cambias algo, toca <b>Guardar perfil</b>.</p><p>También puedes apagar que tu pareja revise tus misiones.</p>',
+ mform:'<ol><li>Escribe qué hay que hacer.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Agregar misión</b>.</li></ol><p>Aparece en Hoy y se hace una sola vez. Que sea amable y gratis. Máximo 5 por semana. No se permiten groserías, insultos, violencia, sexo, drogas ni presión.</p>',
+ backup:'<ol><li>Toca <b>Copiar código de respaldo</b>.</li><li>Pégalo en un chat contigo mismo para guardarlo.</li><li>Si cambias de teléfono, pega el código en <b>Restaurar con un código</b> y toca <b>Restaurar progreso</b>.</li></ol><p>Las fotos de prueba no van en el código.</p>',
+ home:'<h3>Android</h3><ol><li>Abre el link de la app en <b>Chrome</b>.</li><li>Toca los <b>tres puntos</b> de arriba.</li><li>Toca <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</li></ol><h3>iPhone</h3><ol><li>Abre el link de la app en <b>Safari</b>.</li><li>Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.</li><li>Toca <b>Agregar a pantalla de inicio</b>.</li></ol><p>Si abriste el link desde WhatsApp, toca los tres puntos y elige <b>Abrir en el navegador</b>. Después abre siempre la app desde su ícono.</p>',
+ reg:'<p>Estos datos se guardan solo en tu teléfono.</p><ul><li><b>Edad:</b> la app elige misiones y premios que van con tu edad.</li><li><b>Qué son:</b> novios, quedantes, amigos o familia. Cambia el tono de las misiones.</li><li><b>Cómo se ven:</b> si es a distancia, solo salen misiones y premios que se hacen por mensaje o llamada.</li></ul>'
+};
+function qb(k){return '<button type="button" class="qb" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
+function qbIn(k){return '<button type="button" class="qb in" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
+function qh(k){return '<div class="qhelp" data-k="'+k+'"'+(ui.q[k]?'':' hidden')+'>'+HELP[k]+'</div>'}
+function viewAyuda(){
+  var first=!S.intro;
+  function steps(a){return '<ol class="steps">'+a.map(function(t,i){return '<li><b class="n">'+(i+1)+'</b><span>'+t+'</span></li>'}).join("")+'</ol>'}
+  return '<div class="top">'+ICON.heart+'<span>Misiones de Amor</span></div>'+
+   '<div class="panel"><h1 style="font-size:28px">Cómo funciona</h1><p style="margin:0;font-size:17px">Haz misiones, gana puntos y cambia tus puntos por premios.</p>'+
+   steps(['Cada día tienes misiones nuevas. Por ejemplo: mandar un audio o hacer una llamada.','Haz la misión y sube una foto de prueba, como una captura del chat.','Ganas puntos y subes de nivel.','Con tus puntos pides un premio. Tu pareja dice si lo acepta o si quiere más o menos puntos.'])+'</div>'+
+   '<div class="panel"><h2 style="font-size:22px">Jugar con tu pareja</h2>'+
+   steps(['Los dos abren la app en su celular.','Una persona va a <b>Pareja</b> y toca <b>Crear mensaje de enlace</b>.','Toca <b>Abrir WhatsApp</b> y manda el mensaje a su pareja, sin cambiarlo.','La otra persona copia el mensaje, abre la app, va a <b>Pareja</b>, lo pega y toca <b>Leer mensaje</b>.','La app le da otro mensaje. Lo manda de regreso y la primera persona lo pega igual. Listo, ya están enlazados.'])+
+   '<div class="banner">La app no manda avisos sola. Cada mensaje va por WhatsApp y la otra persona lo pega en la app.</div></div>'+
+   '<div class="panel"><h2 style="font-size:22px">Ponla en tu pantalla de inicio</h2><h3>Android</h3>'+
+   steps(['Abre el link de la app en <b>Chrome</b>.','Toca los <b>tres puntos</b> de arriba.','Toca <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.'])+
+   '<h3>iPhone</h3>'+steps(['Abre el link de la app en <b>Safari</b>.','Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.','Toca <b>Agregar a pantalla de inicio</b>.'])+
+   '<p class="hint">Si abriste el link desde WhatsApp, toca los tres puntos y elige <b>Abrir en el navegador</b>. Después abre siempre la app desde su ícono.</p></div>'+
+   '<button class="btn" data-a="helpOk">'+'Volver'+'</button>';
+}
+var TABS=[["hoy","Hoy"],["premios","Premios"],["pareja","Pareja"],["progreso","Progreso"],["ajustes","Ajustes"]];
+
+function profileFields(px){
+  var p=S.profile,age=p.age||"";
+  var rel=Object.keys(RELS).map(function(k){return '<option value="'+k+'"'+(p.rel===k?' selected':'')+(age&&age<13&&isRom(k)?' disabled':'')+'>'+RELS[k]+'</option>'}).join("");
+  return '<div class="row"><label>Tu nombre<input id="'+px+'Me" value="'+esc(S.me)+'" maxlength="30" autocomplete="off" required></label>'+
+   '<label>Nombre de la otra persona<input id="'+px+'Partner" value="'+esc(S.partner)+'" maxlength="30" autocomplete="off" required></label></div>'+
+   '<div class="row"><label>Tu edad<input id="'+px+'Age" type="number" min="10" max="99" value="'+age+'" required></label>'+
+   '<label>Qué son<select id="'+px+'Rel">'+rel+'</select></label></div>'+
+   '<p class="hint" id="'+px+'Hint">'+esc(ageHint(age))+'</p>'+
+   '<label>Cómo se ven<select id="'+px+'Dist"><option value="lejos"'+(p.dist==="lejos"?' selected':'')+'>Casi siempre a distancia</option><option value="cerca"'+(p.dist==="cerca"?' selected':'')+'>Nos vemos en persona</option></select></label>';
+}
+function viewRegistro(){
+  return '<div class="top">'+ICON.heart+'<span>Bienvenidos a Misiones de Amor</span></div>'+
+   '<form class="panel" id="regForm"><h2>Cuéntanos de ti</h2>'+qb('reg')+qh('reg')+'<p class="hint">Con esto la app ajusta las misiones y los premios.</p>'+
+   profileFields("reg")+'<button class="btn" type="submit">Empezar</button></form>';
+}
+function topLabel(){var r=S.profile.rel;return r==="amigos"?"Misiones de amistad":r==="familia"?"Misiones en familia":"Misiones de amor"}
+function viewHero(){
+  var e=earnedVal(S.log),L=levelOf(e),bal=balance(S.log),st=streak();
+  var next=L<6?LV_MIN[L]:null,pct=next?Math.round((e-LV_MIN[L-1])/(next-LV_MIN[L-1])*100):100;
+  var missions=todayMissions(),d=doneToday(),n=missions.filter(function(m){return d[m.id]}).length;
+  var who=S.partner?topLabel()+" con "+esc(S.partner):topLabel();
+  var banner="";
+  if(st>=1&&todayCount()<3)banner='<div class="banner">Tu racha de '+st+(st===1?' día':' días')+' está en riesgo. Haz 3 misiones hoy. Si la pierdes, te quitan '+penaltyFor(dayLevel())+' puntos.</div>';
+  var pending=S.log.filter(function(x){return x.status==="rev"}).length;
+  return '<div class="top">'+ICON.heart+'<span>'+who+'</span><button class="btn ghost sm" data-a="saveNow" style="margin-left:auto">Guardar progreso</button></div>'+
+  '<section class="hero" aria-label="Tus puntos">'+qb('hero')+qh('hero')+'<div class="score"><b>'+bal+'</b><span>puntos</span></div>'+
+  '<div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>'+
+  '<div class="lvl"><span>Nivel '+L+' de 6: <strong>'+esc(lvName(L))+'</strong></span><span>'+(next?'Faltan '+(next-e)+' puntos para '+esc(lvName(L+1)):'Nivel máximo')+'</span></div>'+
+  '<div class="meta"><span class="pill ok">Hoy '+n+'/'+missions.length+'</span><span class="pill gold">Racha '+st+(st===1?' día':' días')+'</span><span class="pill">Ganados '+e+'</span>'+
+  (pending?'<span class="pill gold">En revisión '+pending+'</span>':'')+(S.savedAt?'<span class="pill">Guardado '+timeStr(S.savedAt)+'</span>':'')+'</div></section>'+banner;
+}
+function revBox(m,en){
+  var msg=ui.revMsg[en.ts];
+  if(!msg){msg=ui.revMsg[en.ts]=compose("mrep",{eid:en.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?")}
+  return '<div class="panel revbox"><h3>Manda esto a tu pareja</h3>'+
+   '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Toca <b>Abrir WhatsApp</b> y manda el mensaje.</li><li>Mándale también la foto de prueba en el mismo chat.</li><li>Tu pareja lo pega en la app y te contesta si la acepta. Pega su respuesta en <b>Pareja</b>.</li></ol>'+
+   '<textarea readonly id="rev-'+en.ts+'">'+esc(msg.text)+'</textarea>'+
+   '<div class="row"><a class="btn" href="'+waLink(msg.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyRev" data-id="'+en.ts+'">Copiar mensaje</button></div></div>';
+}
+function missionCard(m,done,custom){
+  var en=done[m.id],isDone=!!en,rev=isDone&&en.status==="rev";
+  var note=isDone?(rev?'En revisión: tu pareja tiene que aceptarla':(en.proof?'Prueba enviada. Toca para verla.':'Cumplida')):'Toca para subir tu foto de prueba';
+  var tag=m.star?'Misión estrella · ':'';
+  if(custom)tag+=(m.from?'De '+esc(m.from):'Tuya')+' · ';
+  return '<button class="card mission'+(isDone?(rev?' done rev':' done'):'')+(m.star?' star':'')+'" data-a="open" data-id="'+esc(m.id)+'" aria-pressed="'+isDone+'">'+
+   '<span class="chk">'+ICON.check+'</span><span class="body"><span class="cat" style="color:var(--cat-'+m.cat+')">'+tag+CATS[m.cat]+'</span>'+
+   '<span class="txt">'+esc(m.text)+'</span><span class="note">'+note+'</span></span><span class="pts">+'+m.pts+'</span></button>'+(rev&&S.pairId?revBox(m,en):"");
+}
+function outBox(){
+  if(!ui.out)return "";
+  return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+'<p class="hint">Mándaselo por WhatsApp.</p>'+
+   '<textarea id="outText" readonly>'+esc(ui.out.text)+'</textarea>'+
+   '<div class="row"><a class="btn" href="'+waLink(ui.out.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyOut">Copiar mensaje</button></div>'+
+   '<button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
+}
+function proofBox(){
+  if(ui.proof){
+    var m=allMissions().filter(function(x){return x.id===ui.proof})[0];if(!m)return "";
+    return '<div class="panel"><h3>Prueba de la misión</h3>'+qb('proof')+qh('proof')+'<p style="margin:0;font-weight:500">'+esc(m.text)+' <span style="color:var(--accent)">(+'+m.pts+')</span></p>'+
+     '<p class="hint">Sube una captura o foto de lo que hiciste.'+(reviewOn()?' Tu pareja la tiene que aceptar para que cuenten los puntos.':'')+'</p>'+
+     '<label>Foto de prueba<input id="proofFile" type="file" accept="image/*"></label>'+
+     (ui.proofBusy?'<p class="hint">Revisando la foto...</p>':'')+(ui.proofErr?'<div class="banner bad">'+esc(ui.proofErr)+'</div>':'')+
+     (ui.proofData?'<img class="shot" alt="Vista previa de la prueba" src="'+ui.proofData+'">':'')+
+     '<div class="row"><button class="btn" data-a="proofOk"'+(ui.proofData?'':' disabled')+'>Enviar prueba y cumplir misión</button><button class="btn ghost" data-a="proofCancel">Cancelar</button></div></div>';
+  }
+  if(ui.view){
+    var e=doneToday()[ui.view];if(!e)return "";
+    return '<div class="panel"><h3>'+(e.status==="rev"?'Misión en revisión':'Misión cumplida')+'</h3><p style="margin:0;font-weight:500">'+esc(e.text)+'</p>'+
+     (e.proof?'<img class="shot" alt="Prueba de la misión" src="'+e.proof+'">':'<p class="hint">Esta prueba ya no está guardada en el teléfono para ahorrar espacio.</p>')+
+     '<div class="row"><button class="btn ghost" data-a="proofCancel">Cerrar</button><button class="btn ghost" data-a="undo" data-id="'+esc(ui.view)+'">Quitar misión</button></div></div>';
+  }
+  return "";
+}
+function viewHoy(){
+  var daily=todayMissions(),d=doneToday(),L=dayLevel();
+  var parts=daily.map(function(m){return missionCard(m,d,false)}).join("");
+  var cs=customActive();
+  var customs=cs.length?'<div class="sec"><h2>Misiones nuevas</h2>'+qbIn('newm')+'</div>'+qh('newm')+'<div class="list">'+cs.map(function(c){return missionCard(c,d,true)}).join("")+'</div>':"";
+  var date=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+  var inperson=S.profile.dist==="cerca"?(isMinor(bandOf(S.profile.age))?' Las misiones en persona se hacen en lugares públicos o en casa de familia, y con permiso de sus papás.':''):'';
+  return viewHero()+newsBox()+outBox()+proofBox()+'<div class="sec"><h2>Misiones de hoy</h2><small>'+esc(date)+'</small>'+qbIn('missions')+'</div>'+qh('missions')+
+   '<div class="list">'+parts+'</div>'+
+   '<p class="hint">Hoy se pueden ganar '+dailyTotal(L)+' puntos.'+inperson+'</p>'+customs+
+   '<button class="btn" data-a="share">Compartir mi progreso</button>';
+}
+function viewPremios(){
+  var bal=balance(S.log),lv=levelOf(earnedVal(S.log)),note="";
+  if(ui.lastRedeem){
+    var txt=(S.me?S.me+": ":"")+"Canjeé mi premio \""+ui.lastRedeem.text+"\" con mis puntos. ¡Me lo debes!";
+    note='<div class="notice"><strong>Premio canjeado: '+esc(ui.lastRedeem.text)+'</strong><span>Avísale a tu pareja para que te lo cumpla.</span>'+
+      '<div class="row"><a class="btn" href="'+waLink(txt)+'" target="_blank" rel="noopener">Avisar por WhatsApp</a><button class="btn ghost" data-a="closeRedeem">Listo</button></div></div>';
+  }
+  var pendBox="";
+  if(S.pending.length){
+    pendBox='<div class="sec"><h2>Por cumplir</h2>'+qbIn('pend')+'</div>'+qh('pend')+'<div class="list">'+S.pending.map(function(p){
+      var wt=(S.me?S.me+": ":"")+"Canjeé mi premio \""+p.text+"\" con mis puntos. ¡Me lo debes!";
+      return '<div class="card reward"><span class="body"><span class="cat" style="color:var(--ok)">Por cumplir</span><span class="txt">'+esc(p.text)+'</span></span>'+
+        '<span class="col"><a class="btn ghost sm" href="'+waLink(wt)+'" target="_blank" rel="noopener">Avisar</a><button class="btn sm" data-a="fulfill" data-id="'+esc(p.rid)+'">Ya se cumplió</button></span></div>';
+    }).join("")+'</div>';
+  }
+  var items=allRewards().filter(function(r){return !S.pending.some(function(p){return p.rid===r.id})}).map(function(r){
+    var locked=lv<r.lvl,can=!locked&&bal>=r.cost,asking=ui.confirm===r.id;
+    var label=(r.mode==="p"?"En persona":r.mode==="d"?"Distancia":"Premio acordado")+" · "+(r.cost<=500?"Tranquilo":"Fuerte");
+    var sub=locked?'Se desbloquea en el nivel '+r.lvl+': '+esc(lvName(r.lvl)):(can?'Tienes puntos para este premio':'Te faltan '+(r.cost-bal)+' puntos');
+    var action=locked?'<button class="btn sm" disabled>Nivel '+r.lvl+'</button>':asking?'<button class="btn sm" data-a="redeemOk" data-id="'+esc(r.id)+'">Confirmar</button>':
+      '<button class="btn sm" data-a="redeemAsk" data-id="'+esc(r.id)+'"'+(can?'':' disabled')+'>Canjear</button>';
+    return '<div class="card reward'+(locked?' locked':'')+'"><span class="body"><span class="cat" style="color:var(--cat-'+(r.mode==="p"?"aud":r.mode==="d"?"lla":"pal")+')">'+label+'</span><span class="txt">'+esc(r.text)+'</span><small>'+sub+'</small></span>'+
+      '<span class="col"><span class="rw-cost">'+r.cost+'</span>'+action+'</span></div>';
+  }).join("");
+  var minor=isMinor(bandOf(S.profile.age))?'<p class="hint">Los premios en persona se cumplen en lugares públicos o en casa de familia, y con permiso de sus papás.</p>':'';
+  var req=S.proposals.length?'<div class="sec"><h2>Premios que pidieron</h2>'+qbIn('reqs')+'</div>'+qh('reqs')+propCards():'';
+  return viewHero()+newsBox()+outBox()+note+req+pendBox+'<div class="sec"><h2>Premios</h2><small>Tienes '+bal+' puntos</small>'+qbIn('prem')+'</div>'+qh('prem')+minor+'<div class="list">'+items+'</div>'+
+    '<div class="panel"><h3>¿Quieres un premio nuevo?</h3>'+qb('newprize')+qh('newprize')+'<p class="hint">Propónselo a tu pareja.</p><button class="btn" data-a="tab" data-id="pareja">Ir a Pareja</button></div>';
+}
+function propCards(){
+  var list=S.proposals.slice().reverse().slice(0,20);
+  if(!list.length)return '<p class="hint">Aún no hay propuestas de premios.</p>';
+  return '<div class="list">'+list.map(function(p){
+    var who=esc(p.from||S.pairName||"Tu pareja"),kind=p.cost<=500?"Tranquilo":"Fuerte",head='<span class="txt">'+esc(p.text)+'</span>',acts="",stat="";
+    if(p.dir==="in"){
+      if(p.status==="nueva"){
+        stat=who+' propone este premio por '+p.cost+' puntos ('+kind+'). ¿Te parece bien?';
+        acts='<div class="row"><button class="btn sm" data-a="propOk" data-id="'+esc(p.id)+'">Aceptar</button><button class="btn ghost sm" data-a="propNo" data-id="'+esc(p.id)+'">Rechazar</button></div>'+
+          '<div class="row"><label>Pedir otro precio<input id="ctr-'+esc(p.id)+'" type="number" min="150" max="1500" value="'+p.cost+'"></label><button class="btn ghost sm" data-a="propCtr" data-id="'+esc(p.id)+'" style="align-self:flex-end">Pedir este precio</button></div>';
+      }
+      else if(p.status==="aceptada")stat='Aceptaste este premio por '+p.cost+' puntos.';
+      else if(p.status==="contra")stat='Pediste '+(p.counter>p.cost?'más':'menos')+' puntos: '+p.counter+' en vez de '+p.cost+'. Esperando a '+who+'.';
+      else if(p.status==="rechazada")stat='Rechazaste este premio.';
+      else if(p.status==="confirmada")stat=who+' aceptó el precio de '+p.counter+' puntos. Ya está en sus premios.';
+      else stat=who+' canceló este premio.';
+    }else{
+      if(p.status==="esperando")stat='Esperando la respuesta de '+esc(S.pairName)+' ('+p.cost+' puntos, '+kind+').';
+      else if(p.status==="aceptada")stat=esc(S.pairName)+' aceptó tu premio por '+p.cost+' puntos. Ya está en la lista de premios.';
+      else if(p.status==="contra"){
+        stat=esc(S.pairName)+' quiere que cueste '+(p.counter>p.cost?'más':'menos')+': '+p.counter+' puntos en vez de '+p.cost+'. ¿Aceptas?';
+        acts='<div class="row"><button class="btn sm" data-a="finOk" data-id="'+esc(p.id)+'">Aceptar '+p.counter+' puntos</button><button class="btn ghost sm" data-a="finNo" data-id="'+esc(p.id)+'">Cancelar premio</button></div>';
+      }
+      else if(p.status==="rechazada")stat=esc(S.pairName)+' no aceptó este premio.';
+      else stat='Cancelaste este premio.';
+    }
+    var lab={nueva:["Para contestar","gold"],esperando:["Esperando respuesta","gold"],aceptada:["Aceptado","ok"],confirmada:["Aceptado","ok"],contra:["Pide cambiar los puntos","gold"],rechazada:["No aceptado","bad"],cancelada:["No aceptado","bad"]}[p.status]||["","ok"];
+    return '<div class="card" style="flex-direction:column;align-items:stretch"><span class="body"><span class="cat" style="color:var(--'+lab[1]+')">'+lab[0]+'</span>'+head+'<span class="stat">'+stat+'</span></span>'+acts+'</div>';
+  }).join("")+'</div>';
+}
+function viewPareja(){
+  var out=outBox(),paired=S.pairId&&S.pairName;
+  var head='<div class="top">'+ICON.heart+'<span>Pareja</span></div>';
+  var recv='<div class="panel"><h3>Pegar un mensaje de tu pareja</h3>'+qb('recv')+qh('recv')+'<p class="hint">Pega aquí el mensaje de tu pareja.</p>'+
+    '<textarea id="inbox" placeholder="Pega aquí el mensaje"></textarea><button class="btn" data-a="readMsg">Leer mensaje</button></div>';
+  if(!paired){
+    var waiting=S.pairId?'<div class="banner">Ya mandaste tu mensaje. Cuando tu pareja te conteste, pega su mensaje abajo y toca Leer mensaje.</div>':'';
+    return head+out+newsBox()+'<div class="panel"><h2>Enlazarse con tu pareja</h2>'+qb('link')+qh('link')+'<p class="hint">Enlázate para mandarse misiones y premios.</p>'+
+      '<button class="btn" data-a="makeInvite">'+(S.pairId?'Ver mi mensaje otra vez':'Crear mensaje de enlace')+'</button></div>'+waiting+recv;
+  }
+  var reviews=S.reviews.length?'<div class="panel"><h3>Misiones por revisar</h3>'+qb('rev')+qh('rev')+S.reviews.map(function(r){
+    return '<div class="log"><span class="lg"><span><strong>'+esc(r.from||S.pairName)+'</strong> dice que cumplió: '+esc(r.text)+' (+'+r.pts+'). Mira su foto en WhatsApp.</span></span></div><div class="row"><button class="btn sm" data-a="revOk" data-id="'+r.eid+'">Aceptar</button><button class="btn ghost sm" data-a="revNo" data-id="'+r.eid+'">No cumple</button></div>';
+  }).join("")+'</div>':'';
+  var sendM='<form class="panel" id="sendMForm"><h3>Ponerle una misión a '+esc(S.pairName)+'</h3>'+qb('sendm')+qh('sendm')+'<p class="hint">Esta semana te quedan '+cmLeft()+' de 5 misiones nuevas.</p>'+
+    '<label>Qué tiene que hacer<input id="sText" maxlength="90" required placeholder="Ej: Mándame un audio con tu canción favorita"></label>'+
+    '<div class="row"><label>Categoría<select id="sCat">'+Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k]+'</option>'}).join("")+'</select></label><label>Puntos (máximo 20)<input id="sPts" type="number" min="1" max="20" value="10" required></label></div>'+
+    '<button class="btn" type="submit"'+(cmLeft()?'':' disabled')+'>'+(cmLeft()?'Crear mensaje con la misión':'Ya usaste tus 5 de esta semana')+'</button></form>';
+  var prop='<form class="panel" id="propForm"><h3>Proponer un premio para ti</h3>'+qb('propform')+qh('propform')+'<p class="hint">Esta semana te quedan '+crLeft()+' de 10 premios.</p>'+
+    '<label>Premio<input id="rText" maxlength="90" required placeholder="Ej: Ver un episodio juntos por videollamada"></label>'+
+    '<div class="row"><label>Tipo<select id="rType"><option value="t">Tranquilo (150 a 500)</option><option value="f">Fuerte (600 a 1500)</option></select></label><label>Cuesta (puntos)<input id="rCost" type="number" min="150" max="500" value="200" required></label></div>'+
+    '<button class="btn" type="submit"'+(crLeft()?'':' disabled')+'>'+(crLeft()?'Crear mensaje con el premio':'Ya usaste tus 10 de esta semana')+'</button></form>';
+  var unlink=ui.unlinkAsk?'<div class="row"><button class="btn" data-a="unlinkOk">Sí, desenlazar</button><button class="btn ghost" data-a="unlinkNo">Cancelar</button></div>':'<button class="btn ghost sm" data-a="unlinkAsk">Desenlazar</button>';
+  return head+out+newsBox()+'<div class="panel"><h2>Enlazados con '+esc(S.pairName)+'</h2>'+qb('paired')+qh('paired')+'<p class="hint">Perfil de tu pareja: '+esc(BANDS[S.pairBand]||"")+', '+esc((RELS[S.pairRel]||"").toLowerCase())+'. '+(S.review?'Tu pareja revisa tus misiones antes de que cuenten los puntos.':'Tus misiones cuentan al enviar la foto, sin esperar a tu pareja.')+'</p>'+unlink+'</div>'+
+    reviews+recv+'<div class="sec"><h2>Propuestas de premios</h2>'+qbIn('props')+'</div>'+qh('props')+propCards()+sendM+prop;
+}
+function viewProgreso(){
+  var e=earnedVal(S.log),L=levelOf(e);
+  var rows=LV_MIN.map(function(min,i){
+    var lv=i+1,unl=REWARDS.filter(function(r){return r.lvl===lv&&itemOK(r)}).length;
+    return '<tr'+(lv===L?' class="cur"':'')+'><td>'+lv+'. '+esc(lvName(lv))+'</td><td>'+min+'</td><td>'+dailyTotal(lv)+'</td><td>-'+penaltyFor(lv)+'</td><td>'+(unl?unl+' nuevos':'—')+'</td></tr>';
+  }).join("");
+  var log=S.log.slice().sort(function(a,b){return b.ts-a.ts}).slice(0,80),out="",last="";
+  log.forEach(function(x){
+    if(x.day!==last){var p=x.day.split("-"),dt=new Date(+p[0],+p[1]-1,+p[2]);out+='<div class="day">'+esc(dt.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}))+'</div>';last=x.day}
+    var lab=x.kind==="f"?'Cumplido':x.status==="rev"?'En revisión':(x.pts>0?'+':'')+x.pts;
+    out+='<div class="log"><span class="lg">'+(x.proof?'<img class="thumb" alt="Prueba" src="'+x.proof+'">':'')+'<span>'+esc(x.text)+'</span></span><span class="p '+(x.pts<0?'neg':'pos')+'">'+lab+'</span></div>';
+  });
+  return viewHero()+'<div class="sec"><h2>Niveles</h2><small>Tú vas en el nivel '+L+'</small>'+qbIn('lvl')+'</div>'+qh('lvl')+
+    '<div class="panel"><div class="tw"><table class="lv"><thead><tr><th>Nivel</th><th>Desde</th><th>Al día</th><th>Racha</th><th>Premios</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '</div>'+
+    '<div class="sec"><h2>Historial</h2>'+qbIn('hist')+'</div>'+qh('hist')+(out?'<div class="panel" style="gap:0">'+out+'</div>':'<div class="empty">Aún no hay movimientos. Completa tu primera misión en la pestaña Hoy.</div>');
+}
+function viewAjustes(){
+  var cm=S.customM.filter(function(c){return !c.from}).map(function(c){return '<div class="log"><span>'+esc(c.text)+' <small style="color:var(--muted)">('+CATS[c.cat]+', +'+c.pts+')</small></span><button class="btn ghost sm" data-a="delM" data-id="'+esc(c.id)+'">Quitar</button></div>'}).join("");
+  var opts=Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k]+'</option>'}).join("");
+  return '<div class="top">'+ICON.heart+'<span>Ajustes</span></div>'+
+  '<form class="panel" id="pfForm"><h3>Mi perfil</h3>'+qb('prof')+qh('prof')+profileFields("pf")+
+  '<label style="flex-direction:row;align-items:center;gap:10px;color:var(--ink)"><input id="pfReview" type="checkbox" style="width:auto"'+(S.review?' checked':'')+'>(Opcional) Que mi pareja revise mis misiones</label>'+
+  '<button class="btn" type="submit">Guardar perfil</button></form>'+
+  '<form class="panel" id="mForm"><h3>Crear una misión para mí</h3>'+qb('mform')+qh('mform')+'<p class="hint">Esta semana te quedan '+cmLeft()+' de 5.</p>'+
+  '<label>Qué hay que hacer<input id="mText" maxlength="90" required placeholder="Ej: Mándale un audio con su canción favorita"></label>'+
+  '<div class="row"><label>Categoría<select id="mCat">'+opts+'</select></label><label>Puntos (máximo 20)<input id="mPts" type="number" min="1" max="20" value="10" required></label></div>'+
+  '<button class="btn" type="submit"'+(cmLeft()?'':' disabled')+'>'+(cmLeft()?'Agregar misión':'Ya usaste tus 5 de esta semana')+'</button>'+(cm?'<div>'+cm+'</div>':'')+'</form>'+
+  '<div class="panel"><h3>Respaldo del progreso</h3>'+qb('backup')+qh('backup')+'<button class="btn" data-a="backupCopy">Copiar código de respaldo</button><label>Restaurar con un código<textarea id="restoreCode" placeholder="Pega aquí tu código, empieza con MDA1:"></textarea></label><button class="btn ghost" data-a="restoreGo">Restaurar progreso</button></div>'+
+  '<div class="panel"><h3>Poner la app en la pantalla de inicio</h3>'+qb('home')+qh('home')+'<p class="hint">Toca el ? para ver los pasos.</p></div>'+
+  '<div class="panel"><h3>Guía completa</h3><p class="hint">Todo lo que hace la app, en una sola pantalla.</p><button class="btn" data-a="helpOpen">Ver guía</button></div>'+
+  '<div class="panel"><h3>Empezar de cero</h3>'+(ui.resetAsk?'<p style="margin:0">Se borran tus puntos, historial, perfil y misiones propias. También se desenlaza tu pareja.</p><div class="row"><button class="btn" data-a="resetOk">Sí, borrar todo</button><button class="btn ghost" data-a="resetNo">Cancelar</button></div>':'<button class="btn ghost" data-a="resetAsk">Borrar mis puntos y datos</button>')+'</div>';
+}
+function newsBox(){
+  var h="",pend=badgeCount();
+  if(S.news.length)h+='<div class="panel"><h3>Novedades de tu pareja</h3>'+qb('news')+qh('news')+S.news.slice().reverse().slice(0,6).map(function(n){return '<div class="log"><span>'+esc(n.text)+'</span></div>'}).join("")+'<button class="btn ghost sm" data-a="clearNews">Entendido, borrar novedades</button></div>';
+  if(pend&&ui.tab!=="pareja")h+='<div class="banner">Tienes '+pend+(pend===1?' cosa':' cosas')+' por contestar. <button class="btn sm" data-a="tab" data-id="pareja">Ir a Pareja</button></div>';
+  return h;
+}
+function badgeCount(){
+  var n=S.reviews.length;
+  S.proposals.forEach(function(p){if((p.dir==="in"&&p.status==="nueva")||(p.dir==="out"&&p.status==="contra"))n++});
+  return n;
+}
+function viewNav(){
+  var bc=badgeCount();
+  return TABS.map(function(t){return '<button data-a="tab" data-id="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'>'+ICON[t[0]]+'<span>'+t[1]+'</span>'+(t[0]==="pareja"&&bc?'<i class="badge">'+bc+'</i>':'')+'</button>'}).join("");
+}
+function render(){
+  document.body.setAttribute("data-big",(S.profile.ok&&bandOf(S.profile.age)==="m")?"1":"0");
+  var nav=document.getElementById("navwrap");
+  if(ui.help){document.getElementById("app").innerHTML=viewAyuda();nav.hidden=true;return}
+  if(!S.profile.ok){document.getElementById("app").innerHTML=viewRegistro();nav.hidden=true;return}
+  nav.hidden=false;
+  var v={hoy:viewHoy,premios:viewPremios,pareja:viewPareja,progreso:viewProgreso,ajustes:viewAjustes}[ui.tab]();
+  document.getElementById("app").innerHTML=v;
+  document.getElementById("nav").innerHTML=viewNav();
+}
+
+/* ---------- Eventos ---------- */
+function shareText(){
+  var m=todayMissions(),d=doneToday(),n=m.filter(function(x){return d[x.id]}).length,L=levelOf(earnedVal(S.log));
+  return (S.me?S.me+" aquí. ":"")+"Hoy llevo "+n+" de "+m.length+" misiones y "+balance(S.log)+" puntos (nivel "+L+", "+lvName(L)+"). Racha: "+streak()+" día"+(streak()===1?"":"s")+". ¿Y tú?";
+}
+function backupCode(){
+  var o=JSON.parse(JSON.stringify(S));o.log.forEach(function(e){delete e.proof});
+  return "MDA1:"+b64(o);
+}
+function restoreFrom(c){
+  try{
+    c=String(c).trim();if(c.indexOf("MDA1:")!==0)return false;
+    var o=JSON.parse(decodeURIComponent(escape(atob(c.slice(5)))));
+    if(!o||typeof o!=="object"||!Array.isArray(o.log))return false;
+    S=clean(o);S.savedAt=Date.now();save();return true;
+  }catch(e){return false}
+}
+function sendOut(type,d,human){setOut(type,d,human);render();window.scrollTo(0,0)}
+document.addEventListener("click",function(ev){
+  var el=ev.target.closest("[data-a]");if(!el)return;
+  var a=el.getAttribute("data-a"),id=el.getAttribute("data-id");
+  var A={
+    tab:function(){ui.tab=id;ui.confirm=null;ui.resetAsk=false;ui.unlinkAsk=false;ui.proof=null;ui.view=null;render();window.scrollTo(0,0)},
+    open:function(){
+      if(doneToday()[id]){ui.view=id;ui.proof=null}else{ui.proof=id;ui.view=null;ui.proofData=null;ui.proofBusy=false;ui.proofErr="";ui.proofHash="";ui.lastFile=null}
+      ui.out=null;render();window.scrollTo(0,0);
+    },
+    proofCancel:function(){ui.proof=null;ui.view=null;ui.proofData=null;ui.proofErr="";render()},
+    proofOk:function(){if(ui.proof&&ui.proofData){var pid=ui.proof,pd=ui.proofData,ph=ui.proofHash;ui.proof=null;ui.proofData=null;toggle(pid,pd,ph);var rb=document.querySelector('.revbox');if(rb)rb.scrollIntoView({block:'center'});else window.scrollTo(0,0)}},
+    undo:function(){ui.view=null;toggle(id)},
+    share:function(){ui.out={title:"Mi progreso",text:shareText()};render();window.scrollTo(0,0)},
+    copyOut:function(){
+      var t=ui.out?ui.out.text:"";
+      copyText(t,function(){toast("Mensaje copiado")},function(){var ta=document.getElementById("outText");if(ta){ta.focus();ta.select()}toast("Selecciona el texto y cópialo")});
+    },
+    closeOut:function(){ui.out=null;render()},
+    copyRev:function(){
+      var g=ui.revMsg[id],t=g?g.text:"";
+      copyText(t,function(){toast("Mensaje copiado")},function(){var ta=document.getElementById("rev-"+id);if(ta){ta.focus();ta.select()}toast("Selecciona el texto y cópialo")});
+    },
+    qb:function(){
+      ui.q[id]=!ui.q[id];
+      Array.prototype.forEach.call(document.querySelectorAll('.qhelp'),function(b){if(b.getAttribute("data-k")===id)b.hidden=!ui.q[id]});
+      Array.prototype.forEach.call(document.querySelectorAll('[data-a="qb"]'),function(b){if(b.getAttribute("data-id")===id)b.setAttribute("aria-expanded",ui.q[id]?"true":"false")});
+    },
+    helpOk:function(){S.intro=true;ui.help=false;save();render();window.scrollTo(0,0)},
+    helpOpen:function(){ui.help=true;render();window.scrollTo(0,0)},
+    clearNews:function(){S.news=[];save();render()},
+    saveNow:function(){doSave();copyText(backupCode(),function(){toast("Progreso guardado. Código de respaldo copiado")},function(){toast("Progreso guardado")});render()},
+    backupCopy:function(){
+      var code=backupCode();
+      copyText(code,function(){toast("Código de respaldo copiado")},function(){var ta=document.getElementById("restoreCode");if(ta){ta.value=code;ta.focus();ta.select()}toast("Copia el código del cuadro")});
+    },
+    restoreGo:function(){var ta=document.getElementById("restoreCode");if(restoreFrom(ta?ta.value:"")){ui.tab="hoy";render();window.scrollTo(0,0);toast("Progreso restaurado")}else toast("Ese código no es válido")},
+    redeemAsk:function(){ui.confirm=id;render()},
+    redeemOk:function(){redeem(id)},
+    closeRedeem:function(){ui.lastRedeem=null;render()},
+    fulfill:function(){
+      var pi=-1;S.pending.forEach(function(p,i){if(p.rid===id&&pi<0)pi=i});
+      if(pi>=0){var pp=S.pending.splice(pi,1)[0];S.log.push({kind:"f",text:"Premio cumplido: "+pp.text,pts:0,day:dayKey(),ts:Date.now()});save();toast("Premio cumplido. Ya puedes canjearlo otra vez");render()}
+    },
+    delM:function(){S.customM=S.customM.filter(function(c){return c.id!==id});save();render()},
+    resetAsk:function(){ui.resetAsk=true;render()},
+    resetNo:function(){ui.resetAsk=false;render()},
+    resetOk:function(){var cm=S.cmCreated,cr=S.crCreated;S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();ui.resetAsk=false;ui.lastRedeem=null;ui.out=null;ui.tab="hoy";render();toast("Datos borrados")},
+    makeInvite:function(){
+      if(!S.pairId){S.pairId=rid()+rid();S.pairName="";save()}
+      sendOut("invite",{age:S.profile.age,rel:S.profile.rel},"Te invito a enlazarnos en Misiones de Amor.");
+    },
+    readMsg:function(){
+      var ta=document.getElementById("inbox"),r=handleMsg(ta?ta.value:"");
+      if(!r.ok){toast(r.msg,4500);return}
+      toast(r.msg,4500);render();window.scrollTo(0,0);
+    },
+    unlinkAsk:function(){ui.unlinkAsk=true;render()},
+    unlinkNo:function(){ui.unlinkAsk=false;render()},
+    unlinkOk:function(){S.pairId="";S.pairName="";S.pairAge=0;S.pairBand="";S.pairRel="";S.proposals=[];S.reviews=[];ui.unlinkAsk=false;ui.out=null;save();render();toast("Desenlazado")},
+    revOk:function(){var i=-1;S.reviews.forEach(function(r,k){if(String(r.eid)===id)i=k});if(i>=0){S.reviews.splice(i,1);save();sendOut("mres",{eid:+id,ok:true},"Te acepté la misión.")}},
+    revNo:function(){var i=-1;S.reviews.forEach(function(r,k){if(String(r.eid)===id)i=k});if(i>=0){S.reviews.splice(i,1);save();sendOut("mres",{eid:+id,ok:false},"No te acepté la misión, falta la prueba.")}},
+    propOk:function(){var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="in"&&x.status==="nueva"})[0];if(p){p.status="aceptada";save();sendOut("rres",{id:id,res:"ok"},"Acepto tu premio por "+p.cost+" puntos.")}},
+    propNo:function(){var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="in"&&x.status==="nueva"})[0];if(p){p.status="rechazada";save();sendOut("rres",{id:id,res:"no"},"No acepto ese premio.")}},
+    propCtr:function(){
+      var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="in"&&x.status==="nueva"})[0],inp=document.getElementById("ctr-"+id);
+      if(!p||!inp)return;
+      var c=validCost(inp.value);
+      if(!c){toast("Elige un precio de 150 a 500 (tranquilo) o de 600 a 1500 (fuerte)",4000);return}
+      if(c===p.cost){toast("Ese es el mismo precio. Mejor toca Aceptar");return}
+      p.status="contra";p.counter=c;save();sendOut("rres",{id:id,res:"counter",cost:c},"Acepto tu premio si cuesta "+c+" puntos en vez de "+p.cost+".");
+    },
+    finOk:function(){var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="out"&&x.status==="contra"})[0];if(p){p.status="aceptada";p.cost=p.counter;S.customR.push({id:"x"+p.id,text:p.text,cost:p.counter});save();sendOut("rfin",{id:id,res:"ok",cost:p.counter},"Perfecto, acepto el nuevo precio de "+p.counter+" puntos.")}},
+    finNo:function(){var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="out"&&x.status==="contra"})[0];if(p){p.status="cancelada";save();sendOut("rfin",{id:id,res:"no"},"Mejor no, cancelo el premio.")}}
+  };
+  if(A[a])A[a]();
+});
+function onPick(ev){
+  var t=ev.target;
+  if(t.id==="rType"){var st=t.value==="f",ci=document.getElementById("rCost");ci.min=st?600:150;ci.max=st?1500:500;ci.value=st?800:200;return}
+  if(t.id!=="proofFile")return;
+  var f=t.files&&t.files[0];if(!f||!ui.proof||ui.proofBusy||ui.lastFile===f)return;ui.lastFile=f;
+  var pid=ui.proof;ui.proofBusy=true;ui.proofData=null;render();
+  ui.proofErr="";
+  readProof(f,function(data,err,hex){
+    if(ui.proof!==pid)return;
+    ui.proofBusy=false;ui.proofData=null;ui.proofHash="";
+    if(err)ui.proofErr=err;
+    else if(dupProof(hex))ui.proofErr="Esa foto ya la usaste como prueba. Sube una foto nueva.";
+    else{ui.proofData=data;ui.proofHash=hex}
+    render();
+  });
+}
+document.addEventListener("change",onPick);
+document.addEventListener("input",function(ev){if(ev.target&&ev.target.id==="proofFile")onPick(ev)});
+document.addEventListener("input",function(ev){
+  var t=ev.target;if(!t.id||t.id.slice(-3)!=="Age")return;
+  var px=t.id.slice(0,-3),age=parseInt(t.value,10),h=document.getElementById(px+"Hint"),rel=document.getElementById(px+"Rel");
+  if(h)h.textContent=ageHint(age);
+  if(rel){
+    for(var i=0;i<rel.options.length;i++){var o=rel.options[i];o.disabled=!!(age&&age<13&&isRom(o.value))}
+    if(rel.options[rel.selectedIndex].disabled)rel.value="amigos";
+  }
+});
+document.addEventListener("submit",function(ev){
+  ev.preventDefault();var f=ev.target.id;
+  if(f==="regForm"||f==="pfForm"){
+    var err=applyProfile(f==="regForm"?"reg":"pf");
+    if(err){toast(err,4500);return}
+    toast(f==="regForm"?"Listo, a jugar":"Perfil guardado");render();window.scrollTo(0,0);
+  }
+  else if(f==="mForm"){
+    var t=document.getElementById("mText").value.trim(),p=Math.max(1,Math.min(20,parseInt(document.getElementById("mPts").value,10)||10));
+    if(!t)return;
+    if(!isClean(t)){toast(NO_MALO,4500);return}
+    if(cmLeft()<=0){toast("Ya agregaste tus 5 misiones de esta semana");return}
+    S.customM.push({id:"c"+Date.now(),cat:document.getElementById("mCat").value,text:t,pts:p});S.cmCreated.push(Date.now());save();render();toast("Misión agregada")}
+  else if(f==="sendMForm"){
+    var st=document.getElementById("sText").value.trim(),sp=Math.max(1,Math.min(20,parseInt(document.getElementById("sPts").value,10)||10)),sc=document.getElementById("sCat").value;
+    if(!st)return;
+    if(!isClean(st)){toast(NO_MALO,4500);return}
+    if(cmLeft()<=0){toast("Ya agregaste tus 5 misiones de esta semana");return}
+    S.cmCreated.push(Date.now());save();
+    sendOut("mission",{text:st,cat:sc,pts:sp},"Te puse una misión: \""+st+"\" (+"+sp+" puntos).");
+  }
+  else if(f==="propForm"){
+    var rt=document.getElementById("rText").value.trim(),strong=document.getElementById("rType").value==="f";
+    var lo=strong?600:150,hi=strong?1500:500,c=Math.max(lo,Math.min(hi,parseInt(document.getElementById("rCost").value,10)||lo));
+    if(!rt)return;
+    if(!isClean(rt)){toast(NO_MALO,4500);return}
+    if(crLeft()<=0){toast("Ya agregaste tus 10 premios de esta semana");return}
+    var pid="p"+rid();
+    S.proposals.push({id:pid,dir:"out",text:rt.slice(0,90),cost:c,status:"esperando",from:S.me});S.crCreated.push(Date.now());save();
+    sendOut("rprop",{id:pid,text:rt.slice(0,90),cost:c},"Quiero proponer este premio: \""+rt.slice(0,90)+"\" por "+c+" puntos. ¿Lo aceptas?");
+  }
+});
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="hidden"){doSave();return}
+  var lost=settle();if(lost>0){toast("Perdiste tu racha: "+lost+" puntos menos",4500)}
+  if(ui.proof||ui.proofBusy)return;
+  var ae=document.activeElement;if(ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"||ae.tagName==="SELECT"))return;
+  render();
+});
+window.addEventListener("pagehide",doSave);
+var lost0=S.profile.ok?settle():0;
+render();
+if(lost0>0)toast("Perdiste tu racha: "+lost0+" puntos menos",4500);
+})();
+</script>
+
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body></html>
