@@ -106,6 +106,10 @@ textarea{resize:vertical;min-height:84px}
 .lg{display:flex;align-items:center;gap:10px;min-width:0}
 .thumb{flex:none;width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
 .tw{overflow-x:auto}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.sw span{width:22px;height:22px;border-radius:50%;background:var(--c);flex:none}
+.sw.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 table.lv{width:100%;border-collapse:collapse;font-size:13px}
 .lv th,.lv td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .lv th{color:var(--muted);font-weight:500}
@@ -251,11 +255,11 @@ var REWARDS=[
 ].map(function(a){return {id:a[0],text:a[1],cost:a[2],mode:a[3],tone:a[4],min:a[5],lvl:a[6]}});
 
 /* ---------- Niveles ---------- */
-var LV_MIN=[0,300,800,1500,2500,4000];
-var LV_NAMES={rom:["Chispa","Flechazo","Enamorados","Cómplices","Inseparables","Leyenda"],ami:["Chispa","Compas","Buenos amigos","Cómplices","Inseparables","Leyenda"],fam:["Chispa","Cercanos","Unidos","Cómplices","Inseparables","Leyenda"]};
-function levelOf(v){for(var i=5;i>=0;i--){if(v>=LV_MIN[i])return i+1}return 1}
+var LV_MIN=[0,500,1200,2500,5000,9000,15000,25000,40000,60000,80000,100000];
+var LV_NAMES={rom:["Chispa","Flechazo","Enamorados","Cómplices","Inseparables","Leyenda","Almas gemelas","Pareja de oro","Amor eterno","Corazón gigante","Historia épica","Amor infinito"],ami:["Chispa","Compas","Buenos amigos","Cómplices","Inseparables","Leyenda","Aliados","Equipo de oro","Hermanos de vida","Amistad gigante","Historia épica","Amistad infinita"],fam:["Chispa","Cercanos","Unidos","Cómplices","Inseparables","Leyenda","Apoyo total","Familia de oro","Lazos fuertes","Corazón gigante","Historia épica","Familia infinita"]};
+function levelOf(v){for(var i=11;i>=0;i--){if(v>=LV_MIN[i])return i+1}return 1}
 function dailyTotal(L){return 50+10*(L-1)}
-function penaltyFor(L){return 20+10*(L-1)}
+function penaltyFor(L){return Math.min(70,20+10*(L-1))}
 function lvName(L){var r=S.profile.rel,k=(r==="novios"||r==="quedantes")?"rom":r==="familia"?"fam":"ami";return LV_NAMES[k][L-1]}
 
 /* ---------- Perfil y reglas por edad ---------- */
@@ -285,7 +289,7 @@ function ageHint(age){
 /* ---------- Estado ---------- */
 function nm(v){v=String(v||"").trim().slice(0,30);return isClean(v)?v:""}
 function clean(o){
-  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
+  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",outq:[],theme:"rosa",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
   if(!o||typeof o!=="object")return b;
   b.me=nm(o.me);b.partner=nm(o.partner);
   var p=o.profile;
@@ -317,20 +321,20 @@ function clean(o){
   });
   (Array.isArray(o.customR)?o.customR:[]).forEach(function(c){
     if(!c||typeof c.id!=="string"||typeof c.text!=="string"||!isClean(c.text))return;
-    b.customR.push({id:c.id.slice(0,40),text:c.text.slice(0,90),cost:Math.max(150,Math.min(1500,parseInt(c.cost,10)||150))});
+    b.customR.push({id:c.id.slice(0,40),text:c.text.slice(0,90),cost:Math.max(150,Math.min(60000,parseInt(c.cost,10)||150))});
   });
   ["cmCreated","crCreated"].forEach(function(k){b[k]=(Array.isArray(o[k])?o[k]:[]).filter(function(t){return typeof t==="number"}).slice(-300)});
   (Array.isArray(o.pending)?o.pending:[]).forEach(function(x){if(x&&typeof x.rid==="string"&&typeof x.text==="string")b.pending.push({rid:x.rid,text:x.text.slice(0,90),cost:+x.cost||0,ts:+x.ts||Date.now()})});
   var idRe=/^[A-Za-z0-9]{6,20}$/;
   if(typeof o.pairId==="string"&&idRe.test(o.pairId)){b.pairId=o.pairId;b.pairName=nm(o.pairName);b.pairBand=BANDS[o.pairBand]?o.pairBand:"";b.pairRel=RELS[o.pairRel]?o.pairRel:"";var pa0=parseInt(o.pairAge,10);b.pairAge=(pa0>=10&&pa0<=99)?pa0:({n:11,t:15,a:25,m:55})[o.pairBand]||0}
-  b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
-  b.intro=o.intro===true;b.joinCode=(typeof o.joinCode==="string"&&idRe.test(o.joinCode)&&!b.pairId)?o.joinCode:"";
+  b.theme=(typeof o.theme==="string"&&/^[a-z]{3,10}$/.test(o.theme))?o.theme:"rosa";b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
+  b.intro=o.intro===true;b.outq=[];(Array.isArray(o.outq)?o.outq:[]).slice(-50).forEach(function(q){if(q&&typeof q.id==="string"&&typeof q.text==="string"&&q.text.length<6000)b.outq.push({id:q.id.slice(0,40),text:q.text,eid:typeof q.eid==="number"?q.eid:undefined})});b.joinCode=(typeof o.joinCode==="string"&&idRe.test(o.joinCode)&&!b.pairId)?o.joinCode:"";
   b.news=(Array.isArray(o.news)?o.news:[]).filter(function(x){return x&&typeof x.id==="string"&&typeof x.text==="string"&&isClean(x.text)}).map(function(x){return {id:x.id.slice(0,20),text:x.text.slice(0,200),ts:+x.ts||Date.now()}}).slice(-15);
   var st={out:["esperando","aceptada","contra","rechazada","cancelada"],"in":["nueva","aceptada","contra","rechazada","confirmada","cancelada"]};
   (Array.isArray(o.proposals)?o.proposals:[]).forEach(function(x){
     if(!x||typeof x.id!=="string"||(x.dir!=="out"&&x.dir!=="in")||typeof x.text!=="string"||!isClean(x.text)||st[x.dir].indexOf(x.status)<0)return;
-    var y={id:x.id.slice(0,40),dir:x.dir,text:x.text.slice(0,90),cost:Math.max(150,Math.min(1500,parseInt(x.cost,10)||150)),status:x.status,from:nm(x.from)};
-    if(x.counter)y.counter=Math.max(150,Math.min(1500,parseInt(x.counter,10)||150));
+    var y={id:x.id.slice(0,40),dir:x.dir,text:x.text.slice(0,90),cost:Math.max(150,Math.min(60000,parseInt(x.cost,10)||150)),status:x.status,from:nm(x.from)};
+    if(x.counter)y.counter=Math.max(150,Math.min(60000,parseInt(x.counter,10)||150));
     b.proposals.push(y);
   });
   (Array.isArray(o.reviews)?o.reviews:[]).forEach(function(x){
@@ -342,11 +346,11 @@ function clean(o){
 }
 function load(){try{var raw=localStorage.getItem(KEY);if(raw)return clean(JSON.parse(raw))}catch(e){}return clean(null)}
 var S=load();
-var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{},pf:{},pfReq:{},pfMiss:{}};
+var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{},pf:{},pfReq:{},pfMiss:{},regMode:"crear",logoutAsk:false};
 var toastTimer=null;
 function save(){
   for(var tries=0;tries<60;tries++){
-    try{localStorage.setItem(KEY,JSON.stringify(S));return}catch(e){
+    try{localStorage.setItem(KEY,JSON.stringify(S));try{netStateSave()}catch(x){}return}catch(e){
       if(!(e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014)))return;
       var i=-1;for(var j=0;j<S.log.length;j++){if(S.log[j].proof){i=j;break}}
       if(i<0)return;delete S.log[i].proof;
@@ -390,7 +394,6 @@ function toast(t,ms){
   var el=document.getElementById("toast");el.textContent=t;el.hidden=false;
   clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.hidden=true},ms||2400);
 }
-function waLink(text){return "https://wa.me/?text="+encodeURIComponent(text)}
 
 /* ---------- Puntos, nivel, racha ---------- */
 function balance(log){return log.reduce(function(a,e){return a+(e.status==="rev"?0:e.pts)},0)}
@@ -421,7 +424,7 @@ function picksFor(date,extra){
 /* El nivel que cuenta para las misiones del día es el que tenías al empezar el día */
 function dayLevel(){return levelOf(earnedVal(S.log,dayKey()))}
 function todayMissions(){
-  var L=dayLevel(),total=dailyTotal(L),picks=picksFor(new Date(),Math.floor((L-1)/2)),base=3,rest=total-base*picks.length;
+  var L=dayLevel(),total=dailyTotal(L),picks=picksFor(new Date(),Math.min(2,Math.floor((L-1)/2))),base=3,rest=total-base*picks.length;
   var W=picks.reduce(function(a,m){return a+m.w},0)||1;
   var out=picks.map(function(m){var raw=rest*m.w/W,fl=Math.floor(raw);return {id:m.id,cat:m.cat,text:m.text,pts:base+fl,frac:raw-fl,mode:m.mode}});
   var left=total-out.reduce(function(a,m){return a+m.pts},0);
@@ -470,48 +473,91 @@ function settle(){
 }
 function reviewOn(){return !!(S.pairId&&S.pairName&&S.review)}
 
-/* ---------- Mensajes entre los dos teléfonos (códigos por WhatsApp) ---------- */
+/* ---------- Mensajes entre los dos teléfonos ---------- */
 function b64(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 function compose(type,d,human){
   var env={v:2,pair:S.pairId,from:S.me||"Tu pareja",id:rid()+rid(),t:type,d:d};
-  var text="Misiones de Amor: "+human+"\n\nPara usarlo: copia TODO este mensaje, abre la app, ve a Pareja, pégalo y toca Leer mensaje.\nMDA2:"+b64(env);
+  var text="Misiones de Amor: "+human+"\nMDA2:"+b64(env);
   return {title:human,text:text,env:env};
 }
 function setOut(type,d,human){ui.out=compose(type,d,human);netSend(ui.out)}
 
-/* ---------- Internet (Firebase). Si no hay configuración, todo sigue por WhatsApp ---------- */
-var Net={ad:null,state:"off",pair:"",unsub:null,dev:""};
+/* ---------- Internet (Firebase) ---------- */
+var Net={ad:null,state:"off",pair:"",unsub:null,dev:"",user:null,busy:false,saved:0};
+var stT=null;
 function devId(){try{var d=localStorage.getItem("mda-dev");if(!d){d=rid()+rid();localStorage.setItem("mda-dev",d)}return d}catch(e){return rid()+rid()}}
+function authMsg(e){
+  var c=String((e&&(e.code||e.message))||e||"");
+  if(c.indexOf("email-already-in-use")>=0||c.indexOf("credential-already-in-use")>=0)return "Ese correo ya tiene cuenta. Toca Ya tengo cuenta para entrar.";
+  if(c.indexOf("weak-password")>=0)return "La contraseña es muy corta. Usa al menos 6 caracteres.";
+  if(c.indexOf("invalid-email")>=0)return "Ese correo no parece válido.";
+  if(c.indexOf("invalid-credential")>=0||c.indexOf("wrong-password")>=0||c.indexOf("user-not-found")>=0)return "Correo o contraseña incorrectos.";
+  if(c.indexOf("too-many")>=0)return "Demasiados intentos. Espera unos minutos.";
+  if(c.indexOf("network")>=0)return "No hay internet. Inténtalo de nuevo.";
+  if(c.indexOf("operation-not-allowed")>=0)return "Falta activar el acceso con correo en Firebase.";
+  return "No se pudo. Inténtalo de nuevo.";
+}
 function mkFirebase(cfg){
-  var B="https://www.gstatic.com/firebasejs/10.14.1/",F,ad;
+  var B="https://www.gstatic.com/firebasejs/10.14.1/";
   return Promise.all([import(B+"firebase-app.js"),import(B+"firebase-auth.js"),import(B+"firebase-firestore.js")]).then(function(m){
-    var app=m[0].initializeApp(cfg),auth=m[1].getAuth(app);F=m[2];var db=F.getFirestore(app);
-    return m[1].signInAnonymously(auth).then(function(){
-      return {
-        post:function(pair,x){return F.setDoc(F.doc(db,"pairs",pair,"msgs",x.id),{id:x.id,dev:x.dev,text:x.text,t:Date.now()})},
-        proofPut:function(pair,eid,data){return F.setDoc(F.doc(db,"pairs",pair,"proofs",String(eid)),{data:data,t:Date.now()})},
-        proofGet:function(pair,eid){return F.getDoc(F.doc(db,"pairs",pair,"proofs",String(eid))).then(function(sn){return sn.exists()?sn.data().data:null})},
-        listen:function(pair,cb,err){return F.onSnapshot(F.query(F.collection(db,"pairs",pair,"msgs"),F.orderBy("t")),function(snap){snap.docChanges().forEach(function(c){if(c.type==="added")cb(c.doc.data())})},err)}
-      };
-    });
+    var app=m[0].initializeApp(cfg),Au=m[1],F=m[2],auth=Au.getAuth(app),db=F.getFirestore(app);
+    function usr(u){return u?{uid:u.uid,email:u.email||"",anon:!!u.isAnonymous}:null}
+    function cred(r){return usr((r&&r.user)||auth.currentUser)}
+    return {
+      onUser:function(cb){Au.onAuthStateChanged(auth,function(u){cb(usr(u))})},
+      signUp:function(email,pw){var u=auth.currentUser;if(u&&u.isAnonymous)return Au.linkWithCredential(u,Au.EmailAuthProvider.credential(email,pw)).then(cred);return Au.createUserWithEmailAndPassword(auth,email,pw).then(cred)},
+      signIn:function(email,pw){return Au.signInWithEmailAndPassword(auth,email,pw).then(cred)},
+      signOut:function(){return Au.signOut(auth)},
+      reset:function(email){return Au.sendPasswordResetEmail(auth,email)},
+      stateSave:function(uid,json){return F.setDoc(F.doc(db,"users",uid),{json:json,t:Date.now()})},
+      stateLoad:function(uid){return F.getDoc(F.doc(db,"users",uid)).then(function(sn){return sn.exists()?sn.data().json:null})},
+      post:function(pair,x){return F.setDoc(F.doc(db,"pairs",pair,"msgs",x.id),{id:x.id,dev:x.dev,text:x.text,t:Date.now()})},
+      proofPut:function(pair,eid,data){return F.setDoc(F.doc(db,"pairs",pair,"proofs",String(eid)),{data:data,t:Date.now()})},
+      proofGet:function(pair,eid){return F.getDoc(F.doc(db,"pairs",pair,"proofs",String(eid))).then(function(sn){return sn.exists()?sn.data().data:null})},
+      listen:function(pair,cb,err){return F.onSnapshot(F.query(F.collection(db,"pairs",pair,"msgs"),F.orderBy("t")),function(snap){snap.docChanges().forEach(function(c){if(c.type==="added")cb(c.doc.data())})},err)}
+    };
   });
 }
 function netInit(){
   Net.dev=devId();
-  if(window.__MDA_ADAPTER){Net.ad=window.__MDA_ADAPTER;Net.state="ok";netListen();return}
+  if(window.__MDA_ADAPTER){Net.ad=window.__MDA_ADAPTER;netBind();return}
   var cfg=window.MDA_FB_CONFIG;
   if(!cfg||!cfg.apiKey||!cfg.projectId)return;
   Net.state="conectando";
-  try{mkFirebase(cfg).then(function(ad){Net.ad=ad;Net.state="ok";netListen();render()},function(){Net.state="error";render()})}catch(e){Net.state="error"}
+  setTimeout(function(){if(Net.state==="conectando"){Net.state="error";render()}},9000);
+  try{mkFirebase(cfg).then(function(ad){Net.ad=ad;netBind()},function(){Net.state="error";render()})}catch(e){Net.state="error"}
 }
+function netBind(){Net.state="conectando";Net.ad.onUser(function(u){netUser(u);render()})}
+function netUser(u){
+  var was=Net.state;Net.user=u;
+  if(u&&!u.anon){Net.state="ok";if(was!=="ok")onSignedIn()}
+  else{Net.state="login";netStop()}
+}
+function onSignedIn(){netListen();netFlush();netStateSave()}
 function netPair(){return S.pairId||S.joinCode||""}
-function netStop(){if(Net.unsub){try{Net.unsub()}catch(e){}}Net.unsub=null;Net.pair=""}
+function netStop(){
+  if(Net.unsub){try{Net.unsub()}catch(e){}}
+  Net.unsub=null;Net.pair="";
+}
 function netListen(){
   var pr=netPair();
-  if(!pr){netStop();return}
-  if(!Net.ad||Net.pair===pr)return;
-  netStop();Net.pair=pr;
-  try{Net.unsub=Net.ad.listen(pr,netIn,function(){Net.state="error";render()})}catch(e){Net.state="error"}
+  if(!pr||Net.state!=="ok"){if(!pr)netStop();return}
+  if(Net.pair!==pr){
+    if(Net.unsub){try{Net.unsub()}catch(e){}}
+    Net.pair=pr;
+    try{Net.unsub=Net.ad.listen(pr,netIn,function(){Net.state="error";render()})}catch(e){Net.state="error"}
+  }
+}
+function netStateSave(now){
+  if(!Net||!Net.ad||Net.state!=="ok"||!Net.user||!S.profile.ok)return null;
+  clearTimeout(stT);
+  var go=function(){
+    var o=JSON.parse(JSON.stringify(S));o.log.forEach(function(e){delete e.proof});o.outq=[];o.news=[];
+    try{return Net.ad.stateSave(Net.user.uid,JSON.stringify(o)).then(function(){Net.saved=Date.now()})}catch(e){return Promise.reject(e)}
+  };
+  if(now)return go();
+  stT=setTimeout(function(){go().catch(function(){})},3000);
+  return null;
 }
 function netIn(m){
   if(!m||m.dev===Net.dev||typeof m.text!=="string"||m.text.length>6000)return;
@@ -519,16 +565,42 @@ function netIn(m){
   var r=handleMsg(m.text);
   if(r.ok){
     if(S.pairId&&S.joinCode){S.joinCode="";save()}
-    toast(r.msg,4500);render();netListen();
+    toast(r.msg,4500);notify(r.msg);render();netListen();
   }else if(joining&&r.msg&&r.msg.indexOf("ya se había")<0){toast(r.msg,4500)}
 }
-function netSend(o,proof){
-  if(!Net.ad||Net.state!=="ok"||!S.pairId||!o||!o.env)return;
-  var pr=S.pairId,m={id:o.env.id,dev:Net.dev,text:o.text};
-  netListen();
-  var go=function(){return Net.ad.post(pr,m)};
-  var job=proof?Net.ad.proofPut(pr,o.env.d.eid,proof).then(go):go();
-  job.then(function(){o.sent=true;render()},function(){o.sent=false;render()});
+function notify(t){
+  try{
+    if(!document.hidden||!("Notification" in window)||Notification.permission!=="granted")return;
+    var o={body:String(t).slice(0,120),icon:"icon-192.png",badge:"icon-192.png",tag:"mda",renotify:true};
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification("Misiones de Amor",o);else new Notification("Misiones de Amor",o)})}
+    else new Notification("Misiones de Amor",o);
+  }catch(e){}
+}
+function netSend(o){
+  if(!o||!o.env||!S.pairId)return;
+  var it={id:o.env.id,text:o.text};if(o.env.t==="mrep"&&typeof o.env.d.eid==="number")it.eid=o.env.d.eid;
+  S.outq=(S.outq||[]).concat([it]).slice(-50);save();
+  netFlush(o);
+}
+function netFlush(cur){
+  if(Net.state!=="ok"||!S.pairId||!S.outq||!S.outq.length||Net.busy){return}
+  Net.busy=true;netListen();
+  var pr=S.pairId;
+  (function next(){
+    var it=S.outq[0];
+    if(!it||S.pairId!==pr){Net.busy=false;return}
+    var job=Promise.resolve();
+    if(it.eid!==undefined){var en=S.log.filter(function(e){return e.kind==="m"&&e.ts===it.eid})[0];if(en&&en.proof)job=Net.ad.proofPut(pr,it.eid,en.proof)}
+    job.then(function(){return Net.ad.post(pr,{id:it.id,dev:Net.dev,text:it.text})}).then(function(){
+      S.outq.shift();save();
+      if(cur&&cur.env&&cur.env.id===it.id)cur.sent=true;
+      Object.keys(ui.revMsg).forEach(function(k){var g=ui.revMsg[k];if(g&&g.env&&g.env.id===it.id)g.sent=true});
+      render();next();
+    },function(){
+      if(cur&&cur.env&&cur.env.id===it.id)cur.sent=false;
+      Net.busy=false;render();
+    });
+  })();
 }
 function proofImg(eid){
   if(ui.pf[eid])return '<img class="shot" alt="Foto de prueba" src="'+ui.pf[eid]+'">';
@@ -540,21 +612,100 @@ function proofImg(eid){
       render();
     },function(){ui.pfMiss[eid]=1;render()});
   }
-  return ui.pfMiss[eid]?'<p class="hint">La foto no llegó. Pídesela por WhatsApp.</p>':'<p class="hint">Cargando la foto…</p>';
+  return ui.pfMiss[eid]?'<p class="hint">La foto no llegó. Pídele que la vuelva a mandar.</p>':'<p class="hint">Cargando la foto…</p>';
+}
+function getCred(px){
+  var e=((document.getElementById(px+"Email")||{}).value||"").trim(),pw=(document.getElementById(px+"Pass")||{}).value||"";
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)){toast("Escribe un correo válido.",4000);return null}
+  if(pw.length<6){toast("La contraseña debe tener al menos 6 caracteres.",4000);return null}
+  return {e:e,p:pw};
+}
+function doSignup(px){
+  var c=getCred(px);if(!c||!Net.ad)return;
+  toast("Creando tu cuenta…",8000);
+  Net.ad.signUp(c.e,c.p).then(function(u){netUser(u);netStateSave(true);toast("Cuenta creada. Tu progreso queda guardado.",5000);render()},function(e){toast(authMsg(e),5000)});
+}
+function doLogin(px){
+  var c=getCred(px);if(!c||!Net.ad)return;
+  toast("Entrando…",8000);
+  Net.ad.signIn(c.e,c.p).then(function(u){
+    netUser(u);
+    return Net.ad.stateLoad(u.uid).then(function(json){
+      var o=null;if(json){try{o=JSON.parse(json)}catch(e){o=null}}
+      var has=!!(o&&Array.isArray(o.log)&&o.profile&&o.profile.ok);
+      if(has&&S.profile.ok&&!window.confirm("Esta cuenta ya tiene progreso guardado. ¿Usarlo? Se reemplaza el de este teléfono."))has=false;
+      if(has){S=clean(o);S.savedAt=Date.now();save()}
+      netListen();netFlush();if(!has&&S.profile.ok)netStateSave(true);
+      toast(has?"Listo, recuperamos tu progreso.":(S.profile.ok?"Entraste a tu cuenta.":"Entraste. Ahora crea tu perfil."),5000);
+      ui.tab="hoy";render();window.scrollTo(0,0);
+    });
+  }).catch(function(e){toast(authMsg(e),5000)});
+}
+function doForgot(px){
+  var e=((document.getElementById(px+"Email")||{}).value||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)){toast("Escribe tu correo arriba y vuelve a tocar.",4000);return}
+  Net.ad.reset(e).then(function(){toast("Te mandamos un correo para cambiar la contraseña. Revisa también el spam.",6000)},function(x){toast(authMsg(x),5000)});
+}
+function acctBox(){
+  if(Net.state!=="login"||!S.profile.ok)return "";
+  return '<form class="panel" id="acctForm"><h3>Guarda tu progreso con tu correo</h3>'+qb('acct')+qh('acct')+
+   '<p class="hint">Así lo recuperas si cambias de teléfono, y puedes enlazarte con tu pareja.</p>'+
+   '<label>Tu correo<input id="acEmail" type="email" autocomplete="email" required></label>'+
+   '<label>Contraseña (mínimo 6)<input id="acPass" type="password" autocomplete="new-password" minlength="6" required></label>'+
+   '<button class="btn" type="submit">Crear cuenta</button>'+
+   '<div class="row"><button class="btn ghost sm" type="button" data-a="acctLogin" data-id="ac">Ya tengo cuenta</button><button class="btn ghost sm" type="button" data-a="forgot" data-id="ac">Olvidé mi contraseña</button></div></form>';
+}
+function acctPanel(){
+  if(Net.state==="login")return acctBox();
+  if(Net.state!=="ok")return '<div class="panel"><h3>Mi cuenta</h3><p class="hint">'+(Net.state==="conectando"?'Conectando…':(Net.state==="error"?'No hay internet.':'Esta versión no tiene cuentas.'))+'</p></div>';
+  return '<div class="panel"><h3>Mi cuenta</h3>'+qb('acct')+qh('acct')+'<p style="margin:0;font-weight:500">'+esc((Net.user&&Net.user.email)||"")+'</p><p class="hint">Tu progreso se guarda solo en tu cuenta.</p>'+
+   '<div class="row"><button class="btn" data-a="saveNow">Guardar ahora</button>'+(ui.logoutAsk?'<button class="btn" data-a="logoutOk">Sí, cerrar sesión</button><button class="btn ghost" data-a="logoutNo">Cancelar</button>':'<button class="btn ghost" data-a="logoutAsk">Cerrar sesión</button>')+'</div></div>';
+}
+var THEMES=[["rosa","Rosa","#C7254E","#FF6B8E"],["rojo","Rojo","#B3261E","#FF8A80"],["naranja","Naranja","#B34700","#FFA05C"],["dorado","Dorado","#8A6100","#F2C14B"],["verde","Verde","#2E7D32","#6FD17A"],["turquesa","Turquesa","#0F766E","#4CC2B0"],["azul","Azul","#1F5FBF","#7AB0FF"],["indigo","Índigo","#4338CA","#9A94FF"],["morado","Morado","#7B2CBF","#C99BFF"],["fucsia","Fucsia","#A21CAF","#F08CFF"],["cafe","Café","#7A4A2A","#D9A06F"],["gris","Gris azulado","#455A64","#A9BEC8"]];
+function isDarkNow(){var h=document.documentElement.getAttribute("data-theme");if(h)return h==="dark";try{return window.matchMedia("(prefers-color-scheme: dark)").matches}catch(e){return false}}
+function applyTheme(){
+  var r=document.documentElement.style,t=THEMES.filter(function(x){return x[0]===S.theme})[0];
+  if(!t||t[0]==="rosa"){["--accent","--accent-soft","--cat-pal"].forEach(function(k){r.removeProperty(k)})}
+  else{var c=isDarkNow()?t[3]:t[2];r.setProperty("--accent",c);r.setProperty("--cat-pal",c);r.setProperty("--accent-soft","color-mix(in srgb, "+c+" 16%, var(--surface))")}
+  var m=document.querySelector('meta[name="theme-color"]');if(m&&t)m.setAttribute("content",t[2]);
+}
+function themePanel(){
+  return '<div class="panel"><h3>Color de la app</h3>'+qb('theme')+qh('theme')+'<p class="hint">Es opcional. Si no eliges nada, se queda el color rosa de siempre.</p><div class="swatches">'+
+   THEMES.map(function(t){return '<button type="button" class="sw'+(S.theme===t[0]?' on':'')+'" data-a="theme" data-id="'+t[0]+'" aria-label="'+t[1]+'" aria-pressed="'+(S.theme===t[0])+'" style="--c:'+t[2]+'"><span></span>'+t[1]+'</button>'}).join("")+'</div></div>';
+}
+function notifPanel(){
+  var perm=("Notification" in window)?Notification.permission:"no";
+  return '<div class="panel"><h3>Avisos</h3>'+qb('notif')+qh('notif')+(perm==="granted"?'<div class="banner ok">Avisos activados ✔</div>':perm==="denied"?'<p class="hint">Los avisos están bloqueados. Actívalos en los permisos del sitio, en Chrome.</p>':perm==="no"?'<p class="hint">Este teléfono no permite avisos.</p>':'<button class="btn" data-a="notifOn">Activar avisos</button>')+'</div>';
+}
+function installPanel(){
+  if(isApp())return "";
+  return '<div class="panel" id="instSlot"><h3>Instala la app</h3><p class="hint">Así se abre como una app normal, sin la barra del navegador.</p>'+(ui.inst?'<button class="btn" type="button" data-a="installApp">Instalar app</button>':'<p style="margin:0">En Chrome, toca los <b>tres puntos</b> y luego <b>Instalar app</b>.</p>')+'</div>';
+}
+function updInst(){
+  var el=document.getElementById("instSlot");
+  if(el&&!S.profile.ok){var d=document.createElement("div");d.innerHTML=installPanel();if(d.firstChild)el.replaceWith(d.firstChild)}
+  else render();
 }
 function onlinePanel(){
-  if(Net.state==="off")return "";
-  if(Net.state==="conectando")return '<div class="banner">Conectando…</div>';
-  if(Net.state==="error")return '<div class="banner bad">No se pudo conectar a internet. Puedes enlazarte con WhatsApp, abajo.</div>';
+  var st=Net.state;
+  if(st==="off")return '<div class="banner bad">Esta versión todavía no tiene internet configurado.</div>';
+  if(st==="conectando")return '<div class="banner">Conectando…</div>';
+  if(st==="error")return '<div class="banner bad">No se pudo conectar a internet. Revisa tu conexión y abre la app otra vez.</div>';
+  if(st==="login")return '<div class="panel"><h2>Primero crea tu cuenta</h2><p class="hint">Para enlazarte con tu pareja necesitas tu cuenta con correo.</p></div>'+acctBox();
   var code=S.pairId||S.joinCode;
   if(code&&!S.pairName)return '<div class="panel"><h2>Tu código de enlace</h2>'+qb('code')+qh('code')+'<p class="code">'+esc(code)+'</p>'+
     '<p class="hint">'+(S.joinCode?'Buscando a tu pareja. Revisa que el código esté bien escrito.':'Dale este código a tu pareja. Cuando lo escriba en su app, se enlazan solos.')+'</p>'+
     '<button class="btn ghost sm" data-a="cancelCode">Cancelar</button></div>';
-  return '<div class="panel"><h2>Enlazarse por internet</h2>'+qb('code')+qh('code')+'<p class="hint">Sin WhatsApp: uno crea un código y el otro lo escribe.</p>'+
+  return '<div class="panel"><h2>Enlazarse con tu pareja</h2>'+qb('code')+qh('code')+'<p class="hint">Uno crea un código y el otro lo escribe.</p>'+
     '<button class="btn" data-a="makeInvite">Crear mi código</button>'+
     '<form id="joinForm"><label>O escribe el código de tu pareja<input id="jCode" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="Ej: k3m9x2pq7a"></label><button class="btn ghost" type="submit">Unirme</button></form></div>';
 }
-function validCost(c){c=parseInt(c,10);return c>=150&&c<=500||c>=600&&c<=1500?c:0}
+function netWarn(){return Net.state==="ok"?"":'<div class="banner bad">Necesitas internet y tu cuenta para recibir lo de tu pareja.</div>'}
+var TIERS=[[150,300,"Chiquito"],[300,500,"Tranquilo"],[500,1000,"Mediano"],[1000,2000,"Grande"],[2000,3500,"Muy grande"],[3500,5000,"Súper"]];
+(function(){for(var n=2;n<=12;n++)TIERS.push([5000*(n-1),5000*n,"Premio nivel "+n])})();
+function tierOf(c){for(var i=0;i<TIERS.length;i++){if(c<=TIERS[i][1])return TIERS[i][2]}return "Súper"}
+function tiersOpen(){return 5+levelOf(earnedVal(S.log))}
+function validCost(c){c=parseInt(c,10);return c>=150&&c<=60000?c:0}
 function handleMsg(text){
   var bad=function(m){return {ok:false,msg:m}};
   var m=/MDA2:([A-Za-z0-9+\/=]+)/.exec(String(text||""));
@@ -573,7 +724,7 @@ function handleMsg(text){
     if(why)return bad(why);
     S.pairId=env.pair;S.pairName=from;S.pairAge=ag;S.pairBand=bandOf(ag);S.pairRel=d.rel;
     setOut("join",{age:S.profile.age,rel:S.profile.rel},"Ya me enlacé contigo, "+from+".");
-    return done("Enlazado con "+from+". Mándale el mensaje de confirmación que apareció arriba.");
+    return done("Enlazado con "+from+". Ya pueden mandarse misiones y premios.");
   }
   if(t==="join"){
     if(!S.pairId||S.pairId!==env.pair||S.pairName)return bad("Ese mensaje no corresponde a tu invitación.");
@@ -603,6 +754,11 @@ function handleMsg(text){
     if(idx<0)return bad("Esa misión ya no está en revisión.");
     if(d.ok){delete S.log[idx].status;return done(from+" aceptó tu misión. Ganaste +"+S.log[idx].pts+" puntos.")}
     var tx=S.log[idx].text;S.log.splice(idx,1);return done(from+" no aceptó la misión \""+tx+"\". Falta la prueba.");
+  }
+  if(t==="redeem"){
+    var rn=String(d.text||"").trim().slice(0,90);
+    if(!rn||!isClean(rn))return bad("Ese mensaje no es válido.");
+    return done(from+" canjeó su premio \""+rn+"\". ¡Se lo debes!");
   }
   if(t==="rprop"){
     var pt=String(d.text||"").trim().slice(0,90),pc=validCost(d.cost);
@@ -644,9 +800,9 @@ function toggle(mid,proof,hash){
   if(balance(log)<0){toast("Ya gastaste esos puntos en un premio");return}
   S.log=log;save();
   if(entry&&entry.status==="rev"){
-    ui.revMsg[entry.ts]=compose("mrep",{eid:entry.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?");
-    netSend(ui.revMsg[entry.ts],proof);
-    toast(Net.state==="ok"?"Enviada a tu pareja para que la revise":"En revisión: manda el mensaje a tu pareja",3500);
+    ui.revMsg[entry.ts]=compose("mrep",{eid:entry.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). ¿La aceptas?");
+    netSend(ui.revMsg[entry.ts]);
+    toast("Enviada a tu pareja para que la revise",3500);
   }else if(entry){toast("+"+m.pts+" puntos")}
   render();
 }
@@ -659,7 +815,9 @@ function redeem(id){
   if(!r||balance(S.log)<r.cost||levelOf(earnedVal(S.log))<r.lvl)return;
   S.log.push({kind:"r",text:"Premio: "+r.text,pts:-r.cost,day:dayKey(),ts:Date.now()});
   S.pending.push({rid:r.id,text:r.text,cost:r.cost,ts:Date.now()});
-  save();ui.confirm=null;ui.lastRedeem=r;render();window.scrollTo(0,0);
+  save();ui.confirm=null;ui.lastRedeem=r;
+  if(S.pairId&&S.pairName)netSend(compose("redeem",{text:r.text.slice(0,90)},"Canjeé un premio"));
+  render();window.scrollTo(0,0);
 }
 function applyProfile(px,first){
   function v(id){return document.getElementById(px+id)}
@@ -688,49 +846,49 @@ var ICON={
 };
 
 var HELP={
- hero:'<p>Aquí ves cómo vas.</p><ul><li><b>Puntos:</b> los ganas con misiones y los gastas en premios.</li><li><b>Nivel:</b> sube con los puntos que has ganado en total. No baja si gastas puntos.</li><li><b>Racha:</b> días seguidos con 3 misiones o más. Si pasa un día sin hacerlas, la pierdes y te quitan puntos.</li><li><b>Guardar progreso:</b> guarda tu avance y copia un código de respaldo.</li></ul>',
- missions:'<ol><li>Cada día salen misiones nuevas. Suben con tu nivel.</li><li>Toca una misión.</li><li>Sube una foto de prueba: una captura del chat, del audio o de la llamada.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>La misión con estrella vale más. Los puntos cuentan al enviar la foto.</p>',
+ hero:'<p>Aquí ves cómo vas.</p><ul><li><b>Puntos:</b> los ganas con misiones y los gastas en premios.</li><li><b>Nivel:</b> sube con los puntos que has ganado en total. No baja si gastas puntos.</li><li><b>Racha:</b> días seguidos con 3 misiones o más. Si pasa un día sin hacerlas, la pierdes y te quitan puntos.</li><li><b>Guardar progreso:</b> guarda tu avance en tu cuenta.</li></ul>',
+ missions:'<ol><li>Cada día salen misiones nuevas. Suben con tu nivel.</li><li>Toca una misión.</li><li>Sube una foto de prueba: una captura del chat, del audio o de la llamada.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>La misión con estrella vale más. Si tu pareja revisa tus misiones, los puntos cuentan cuando ella las acepta.</p>',
  newm:'<p>Son misiones que tú o tu pareja crearon. Se hacen una sola vez y luego desaparecen.</p>',
- news:'<p>Aquí aparecen las respuestas y los mensajes de tu pareja. Cuando los leas, toca <b>Entendido</b> para borrarlos.</p>',
- out:'<ol><li>Toca <b>Abrir WhatsApp</b>.</li><li>Elige a tu pareja.</li><li>Manda el mensaje tal cual, sin cambiarlo.</li></ol><p>Si no se abre WhatsApp, toca <b>Copiar mensaje</b> y pégalo en el chat.</p>',
+ news:'<p>Aquí aparecen las respuestas y los avisos de tu pareja. Cuando los leas, toca <b>Entendido</b> para borrarlos.</p>',
+ out:'<p>Es el aviso que se manda solo a tu pareja. Si dice <b>Enviado ✔</b>, ya le llegó.</p>',
  proof:'<ol><li>Toca el cuadro de <b>Foto de prueba</b> y escoge una captura o una foto.</li><li>Espera a que aparezca la vista previa.</li><li>Toca <b>Enviar prueba y cumplir misión</b>.</li></ol><p>No hace falta que salgan personas. La app no acepta fotos vacías, muy pequeñas ni repetidas.</p>',
- code:'<ol><li>Uno de los dos toca <b>Crear mi código</b>.</li><li>Le da el código a su pareja (por mensaje, llamada o en persona).</li><li>Tu pareja lo escribe en <b>O escribe el código de tu pareja</b> y toca <b>Unirme</b>.</li></ol><p>Listo: quedan enlazados solos. Después, misiones, fotos y premios se mandan solos, sin WhatsApp.</p><p>El código es privado. No se lo des a nadie más.</p>',
- prem:'<ol><li>Toca <b>Canjear</b> en un premio para el que te alcancen los puntos.</li><li>Toca <b>Confirmar</b>.</li><li>Avisa a tu pareja con el botón de WhatsApp.</li><li>Cuando te lo cumplan, toca <b>Ya se cumplió</b>. El premio vuelve a aparecer.</li></ol><p>Los premios con candado se abren al subir de nivel. <b>Tranquilo</b> cuesta de 150 a 500 puntos y <b>Fuerte</b> de 600 a 1500.</p>',
- pend:'<p>Son premios que ya canjeaste. Toca <b>Avisar</b> para mandarle un WhatsApp a tu pareja. Cuando te lo cumpla, toca <b>Ya se cumplió</b> y el premio vuelve a aparecer en la lista para canjearlo otra vez.</p>',
+ code:'<ol><li>Uno de los dos toca <b>Crear mi código</b>.</li><li>Le da el código a su pareja (en persona, por llamada o como prefieran).</li><li>Tu pareja lo escribe en <b>O escribe el código de tu pareja</b> y toca <b>Unirme</b>.</li></ol><p>Quedan enlazados solos. Después, misiones, fotos y premios se mandan solos.</p><p>El código es privado. No se lo des a nadie más.</p>',
+ theme:'<p>Elige el color que más te guste. Solo cambia los colores de la app.</p><ul><li>Es <b>opcional</b>: Rosa es el color de siempre.</li><li>Lo puedes cambiar cuando quieras.</li></ul>',
+ prem:'<ol><li>Toca <b>Canjear</b> en un premio para el que te alcancen los puntos.</li><li>Toca <b>Confirmar</b>.</li><li>A tu pareja le llega un aviso.</li><li>Cuando te lo cumplan, toca <b>Ya se cumplió</b>. El premio vuelve a aparecer.</li></ol><p>Los premios con candado se abren al subir de nivel. Los premios cuestan de 150 a 5000 puntos.</p>',
+ pend:'<p>Son premios que ya canjeaste. Cuando te lo cumpla tu pareja, toca <b>Ya se cumplió</b> y el premio vuelve a aparecer en la lista para canjearlo otra vez.</p>',
  reqs:'<p>Aquí ves qué pasó con cada premio que propusiste:</p><ul><li><b>Esperando respuesta:</b> tu pareja aún no contesta.</li><li><b>Aceptado:</b> ya está en la lista de premios.</li><li><b>Pide cambiar los puntos:</b> quiere que cueste más o menos. Tú decides si aceptas.</li><li><b>No aceptado:</b> tu pareja dijo que no.</li></ul><p>Los premios que te propone tu pareja también salen aquí para que los contestes.</p>',
- newprize:'<ol><li>Ve a <b>Pareja</b>.</li><li>Llena <b>Proponer un premio</b>.</li><li>Manda el mensaje por WhatsApp.</li><li>Tu pareja decide. Verás su respuesta en Premios.</li></ol>',
- link:'<ol><li>Toca <b>Crear mensaje de enlace</b> y mándalo a tu pareja por WhatsApp.</li><li>Tu pareja lo copia, abre la app, va a <b>Pareja</b>, lo pega y toca <b>Leer mensaje</b>.</li><li>Tu pareja te manda otro mensaje. Pégalo aquí y toca <b>Leer mensaje</b>. Listo.</li></ol><p>La app no avisa sola. Cada mensaje va por WhatsApp y la otra persona lo pega en la app.</p>',
- recv:'<ol><li>Tu pareja te manda un mensaje por WhatsApp.</li><li>Cópialo completo.</li><li>Pégalo en el cuadro.</li><li>Toca <b>Leer mensaje</b>.</li></ol><p>Tienes que pegar cada mensaje que te llegue.</p>',
- paired:'<p>Ya están enlazados. Pueden mandarse misiones y premios.</p><p>Tus misiones suman puntos al enviar la foto. Si quieres que tu pareja las revise, lo activas en Ajustes.</p><p><b>Desenlazar</b> borra el enlace.</p>',
- rev:'<ol><li>Tu pareja dice que cumplió una misión.</li><li>Mira su foto. Si hay internet, aparece aquí mismo; si no, te llega por WhatsApp.</li><li>Toca <b>Aceptar</b> si cumplió o <b>No cumple</b> si falta algo.</li><li>Manda el mensaje que aparece.</li></ol>',
+ newprize:'<ol><li>Ve a <b>Pareja</b>.</li><li>Llena <b>Proponer un premio</b>.</li><li>Tu pareja decide. Verás su respuesta en Premios.</li></ol>',
+ paired:'<p>Ya están enlazados. Pueden mandarse misiones y premios.</p><p>Si activaron la revisión, tu pareja ve tus pruebas y decide si las acepta. Se cambia en Ajustes.</p><p><b>Desenlazar</b> borra el enlace.</p>',
+ rev:'<ol><li>Tu pareja dice que cumplió una misión.</li><li>Mira su foto, que aparece aquí mismo.</li><li>Toca <b>Aceptar</b> si cumplió o <b>No cumple</b> si falta algo.</li></ol><p>Tu pareja recibe tu respuesta al instante.</p>',
  props:'<p>Aquí están los premios que propones y los que te propone tu pareja.</p><ul><li><b>Aceptar:</b> el premio queda aprobado.</li><li><b>Pedir este precio:</b> pides más o menos puntos.</li><li><b>Rechazar:</b> no lo aceptas.</li></ul>',
- sendm:'<ol><li>Escribe qué tiene que hacer tu pareja.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Crear mensaje con la misión</b> y mándalo por WhatsApp.</li></ol><p>Se hace una sola vez. Máximo 5 misiones nuevas por semana. No se permiten groserías, violencia, sexo, drogas ni presión.</p>',
- propform:'<ol><li>Escribe el premio.</li><li>Elige <b>Tranquilo</b> (150 a 500 puntos) o <b>Fuerte</b> (600 a 1500).</li><li>Elige cuántos puntos cuesta.</li><li>Toca <b>Crear mensaje con el premio</b> y mándalo por WhatsApp.</li></ol><p>Tu pareja puede aceptar, rechazar o pedir otro precio. Máximo 10 premios por semana.</p>',
+ sendm:'<ol><li>Escribe qué tiene que hacer tu pareja.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Enviar misión</b>.</li></ol><p>Se hace una sola vez. Máximo 5 misiones nuevas por semana. No se permiten groserías, violencia, sexo, drogas ni presión.</p>',
+ propform:'<ol><li>Escribe el premio.</li><li>Elige el tipo según cuántos puntos vale: de <b>150 a 300</b>, de <b>300 a 500</b>, de <b>500 a 1000</b>… hasta <b>3500 a 5000</b>. Al subir de nivel se abren rangos más caros: nivel 2 hasta 10000, nivel 3 hasta 15000, y así hasta 60000 en el nivel 12.</li><li>Elige cuántos puntos cuesta dentro de ese rango.</li><li>Toca <b>Enviar propuesta</b>.</li></ol><p>Tu pareja puede aceptar, rechazar o pedir otro precio. Máximo 10 premios por semana.</p>',
  lvl:'<ul><li><b>Desde:</b> puntos ganados en total para llegar al nivel.</li><li><b>Al día:</b> puntos que dan las misiones de cada día.</li><li><b>Racha:</b> puntos que pierdes si se rompe la racha.</li><li><b>Premios:</b> cuántos premios nuevos se abren.</li></ul><p>Gastar puntos en premios no te baja de nivel. El nivel nuevo se aplica a las misiones del día siguiente. Un día cuenta para la racha si haces 3 misiones.</p>',
  hist:'<p>Aquí ves lo que has ganado y gastado. Las misiones en revisión todavía no suman puntos.</p>',
- prof:'<p>Con tu edad, lo que son y si se ven en persona, la app elige las misiones y premios que te sirven. Si cambias algo, toca <b>Guardar perfil</b>.</p><p>También puedes apagar que tu pareja revise tus misiones.</p>',
+ prof:'<p>Con tu edad, lo que son y si se ven en persona, la app elige las misiones y premios que te sirven. Si cambias algo, toca <b>Guardar perfil</b>.</p><p>También puedes activar o apagar que tu pareja revise tus misiones.</p>',
  mform:'<ol><li>Escribe qué hay que hacer.</li><li>Elige la categoría y los puntos (máximo 20).</li><li>Toca <b>Agregar misión</b>.</li></ol><p>Aparece en Hoy y se hace una sola vez. Que sea amable y gratis. Máximo 5 por semana. No se permiten groserías, insultos, violencia, sexo, drogas ni presión.</p>',
- backup:'<ol><li>Toca <b>Copiar código de respaldo</b>.</li><li>Pégalo en un chat contigo mismo para guardarlo.</li><li>Si cambias de teléfono, pega el código en <b>Restaurar con un código</b> y toca <b>Restaurar progreso</b>.</li></ol><p>Las fotos de prueba no van en el código.</p>',
- home:'<h3>Android</h3><ol><li>Abre el link de la app en <b>Chrome</b>.</li><li>Toca los <b>tres puntos</b> de arriba.</li><li>Toca <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</li></ol><h3>iPhone</h3><ol><li>Abre el link de la app en <b>Safari</b>.</li><li>Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.</li><li>Toca <b>Agregar a pantalla de inicio</b>.</li></ol><p>Si abriste el link desde WhatsApp, toca los tres puntos y elige <b>Abrir en el navegador</b>. Después abre siempre la app desde su ícono.</p>',
- reg:'<p>Estos datos se guardan solo en tu teléfono.</p><ul><li><b>Edad:</b> la app elige misiones y premios que van con tu edad.</li><li><b>Qué son:</b> novios, quedantes, amigos o familia. Cambia el tono de las misiones.</li><li><b>Cómo se ven:</b> si es a distancia, solo salen misiones y premios que se hacen por mensaje o llamada.</li></ul>'
+ acct:'<p>Tu correo sirve para recuperar tu progreso si cambias de teléfono o pierdes la app.</p><ol><li>Escribe tu correo y una contraseña.</li><li>Toca <b>Crear cuenta</b>.</li><li>En otro teléfono, toca <b>Ya tengo cuenta</b> y entra con lo mismo.</li></ol><p>Si olvidas tu contraseña, toca <b>Olvidé mi contraseña</b> y te llega un correo para cambiarla. Las fotos de prueba no se guardan en la cuenta.</p>',
+ notif:'<p>Con los avisos, el teléfono te avisa cuando tu pareja te manda algo.</p><ol><li>Toca <b>Activar avisos</b>.</li><li>Acepta el permiso que sale.</li></ol><p>Funcionan mientras la app siga abierta en segundo plano. Si la cierras del todo, verás lo nuevo cuando la vuelvas a abrir.</p>',
+ home:'<h3>Android</h3><ol><li>Abre el link de la app en <b>Chrome</b>.</li><li>Toca el botón <b>Instalar app</b> de esta pantalla. Si no sale, toca los <b>tres puntos</b> de Chrome y luego <b>Instalar app</b>.</li><li>Elige <b>Instalar</b>. Si solo ves <b>Agregar a pantalla de inicio</b>, elígelo y en la pregunta que sale toca <b>Instalar</b>, no <b>Crear acceso directo</b>.</li></ol><p>Si ya tenías un ícono viejo de la app, bórralo (mantenlo presionado y toca <b>Desinstalar</b> o <b>Quitar</b>) y vuelve a instalarla.</p><h3>iPhone</h3><ol><li>Abre el link de la app en <b>Safari</b>.</li><li>Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.</li><li>Toca <b>Agregar a pantalla de inicio</b>.</li></ol><p>Después abre siempre la app desde su ícono.</p>',
+ review:'<p>Es <b>opcional</b>.</p><ul><li><b>Activado:</b> cuando cumples una misión, tu pareja ve tu foto y decide si la acepta o no. Los puntos se suman cuando la acepta.</li><li><b>Apagado:</b> la misión cuenta apenas mandas la foto.</li></ul><p>Lo puedes cambiar cuando quieras en Ajustes.</p>',
+ reg:'<p>Estos datos sirven para que la app te dé misiones y premios que van contigo.</p><ul><li><b>Correo y contraseña:</b> guardan tu progreso. Si cambias de teléfono, entras con ellos.</li><li><b>Edad:</b> la app elige misiones y premios que van con tu edad.</li><li><b>Qué son:</b> novios, quedantes, amigos o familia. Cambia el tono de las misiones.</li><li><b>Cómo se ven:</b> si es a distancia, solo salen misiones y premios que se hacen por mensaje o llamada.</li></ul>'
 };
 function qb(k){return '<button type="button" class="qb" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
 function qbIn(k){return '<button type="button" class="qb in" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
-function qh(k){return '<div class="qhelp" data-k="'+k+'"'+(ui.q[k]?'':' hidden')+'>'+HELP[k]+'</div>'}
+function lvlHelp(){return '<p>Estos son todos los niveles. Gastar puntos en premios no te baja de nivel. El nivel nuevo se aplica a las misiones del día siguiente.</p><ul>'+LV_MIN.map(function(m,i){var n=i+1;return '<li><b>Nivel '+n+': '+esc(lvName(n))+'</b>. Desde '+m+' puntos. Misiones: '+dailyTotal(n)+' puntos al día. Si pierdes la racha: -'+penaltyFor(n)+'. Premios hasta '+TIERS[4+n][1]+' puntos.</li>'}).join('')+'</ul>'}
+function qh(k){return '<div class="qhelp" data-k="'+k+'"'+(ui.q[k]?'':' hidden')+'>'+(k==="lvl"?lvlHelp():HELP[k])+'</div>'}
 function viewAyuda(){
-  var first=!S.intro;
   function steps(a){return '<ol class="steps">'+a.map(function(t,i){return '<li><b class="n">'+(i+1)+'</b><span>'+t+'</span></li>'}).join("")+'</ol>'}
   return '<div class="top">'+ICON.heart+'<span>Misiones de Amor</span></div>'+
    '<div class="panel"><h1 style="font-size:28px">Cómo funciona</h1><p style="margin:0;font-size:17px">Haz misiones, gana puntos y cambia tus puntos por premios.</p>'+
    steps(['Cada día tienes misiones nuevas. Por ejemplo: mandar un audio o hacer una llamada.','Haz la misión y sube una foto de prueba, como una captura del chat.','Ganas puntos y subes de nivel.','Con tus puntos pides un premio. Tu pareja dice si lo acepta o si quiere más o menos puntos.'])+'</div>'+
    '<div class="panel"><h2 style="font-size:22px">Jugar con tu pareja</h2>'+
-   steps(['Los dos abren la app en su celular.','Una persona va a <b>Pareja</b> y toca <b>Crear mensaje de enlace</b>.','Toca <b>Abrir WhatsApp</b> y manda el mensaje a su pareja, sin cambiarlo.','La otra persona copia el mensaje, abre la app, va a <b>Pareja</b>, lo pega y toca <b>Leer mensaje</b>.','La app le da otro mensaje. Lo manda de regreso y la primera persona lo pega igual. Listo, ya están enlazados.'])+
-   '<div class="banner">La app no manda avisos sola. Cada mensaje va por WhatsApp y la otra persona lo pega en la app.</div></div>'+
+   steps(['Los dos abren la app y crean su cuenta con su correo.','Una persona va a <b>Pareja</b> y toca <b>Crear mi código</b>.','Le da el código a su pareja.','La otra persona va a <b>Pareja</b>, escribe el código y toca <b>Unirme</b>.'])+
+   '<div class="banner">Después de enlazarse, todo se manda solo: misiones, fotos y premios.</div></div>'+
    '<div class="panel"><h2 style="font-size:22px">Ponla en tu pantalla de inicio</h2><h3>Android</h3>'+
-   steps(['Abre el link de la app en <b>Chrome</b>.','Toca los <b>tres puntos</b> de arriba.','Toca <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.'])+
-   '<h3>iPhone</h3>'+steps(['Abre el link de la app en <b>Safari</b>.','Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.','Toca <b>Agregar a pantalla de inicio</b>.'])+
-   '<p class="hint">Si abriste el link desde WhatsApp, toca los tres puntos y elige <b>Abrir en el navegador</b>. Después abre siempre la app desde su ícono.</p></div>'+
-   '<button class="btn" data-a="helpOk">'+'Volver'+'</button>';
+   steps(['Abre el link de la app en <b>Chrome</b>.','Toca el botón <b>Instalar app</b>, o los <b>tres puntos</b> y luego <b>Instalar app</b>.','Abre la app desde su ícono.'])+
+   '<h3>iPhone</h3>'+steps(['Abre el link de la app en <b>Safari</b>.','Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.','Toca <b>Agregar a pantalla de inicio</b>.'])+'</div>'+
+   '<button class="btn" data-a="helpOk">Volver</button>';
 }
 var TABS=[["hoy","Hoy"],["premios","Premios"],["pareja","Pareja"],["progreso","Progreso"],["ajustes","Ajustes"]];
 
@@ -745,14 +903,29 @@ function profileFields(px){
    '<label>Cómo se ven<select id="'+px+'Dist"><option value="lejos"'+(p.dist==="lejos"?' selected':'')+'>Casi siempre a distancia</option><option value="cerca"'+(p.dist==="cerca"?' selected':'')+'>Nos vemos en persona</option></select></label>';
 }
 function viewRegistro(){
-  return '<div class="top">'+ICON.heart+'<span>Bienvenidos a Misiones de Amor</span></div>'+
-   '<form class="panel" id="regForm"><h2>Cuéntanos de ti</h2>'+qb('reg')+qh('reg')+'<p class="hint">Con esto la app ajusta las misiones y los premios.</p>'+
-   profileFields("reg")+'<button class="btn" type="submit">Empezar</button></form>';
+  var top='<div class="top">'+ICON.heart+'<span>Bienvenidos a Misiones de Amor</span></div>';
+  var net=Net.state==="login";
+  var tog='<div class="row"><button class="btn'+(ui.regMode==="crear"?'':' ghost')+'" type="button" data-a="regMode" data-id="crear">Soy nuevo</button><button class="btn'+(ui.regMode==="entrar"?'':' ghost')+'" type="button" data-a="regMode" data-id="entrar">Ya tengo cuenta</button></div>';
+  if(ui.regMode==="entrar"){
+    return top+'<form class="panel" id="loginForm"><h2>Entrar a mi cuenta</h2>'+tog+'<p class="hint">Escribe el correo y la contraseña con los que creaste tu cuenta. Recuperas todo tu progreso.</p>'+
+     (Net.state==="conectando"?'<div class="banner">Conectando…</div>':(net?'':'<div class="banner bad">No hay internet o no se pudo conectar.</div>'))+
+     '<label>Tu correo<input id="rgEmail" type="email" autocomplete="email" required></label>'+
+     '<label>Contraseña<input id="rgPass" type="password" autocomplete="current-password" required></label>'+
+     '<button class="btn" type="submit">Entrar</button><button class="btn ghost sm" type="button" data-a="forgot" data-id="rg">Olvidé mi contraseña</button></form>'+installPanel();
+  }
+  return top+'<form class="panel" id="regForm"><h2>Crea tu perfil</h2>'+tog+qb('reg')+qh('reg')+'<p class="hint">Con esto la app ajusta las misiones y los premios.</p>'+
+   (Net.state==="off"||Net.state==="error"?'<div class="banner bad">No hay internet ahora. Puedes seguir sin correo y ponerlo después en Ajustes.</div>':'')+
+   '<label>Tu correo<input id="rgEmail" type="email" autocomplete="email"'+(net?' required':'')+'></label>'+
+   '<label>Contraseña (mínimo 6)<input id="rgPass" type="password" autocomplete="new-password" minlength="6"'+(net?' required':'')+'></label>'+
+   '<p class="hint">El correo sirve para guardar tu progreso y recuperarlo si cambias de teléfono.</p>'+
+   profileFields("reg")+
+   '<div class="panel" style="background:var(--bg,transparent)"><label style="flex-direction:row;align-items:center;gap:10px;color:var(--ink)"><input id="regReview" type="checkbox" style="width:auto">(Opcional) Que mi pareja vea y acepte si cumplí mis misiones</label>'+qb('review')+qh('review')+'<p class="hint">Si lo dejas apagado, tus misiones cuentan apenas mandas la foto. Lo puedes cambiar después en Ajustes.</p></div>'+
+   '<button class="btn" type="submit">Crear cuenta y empezar</button></form>'+installPanel();
 }
 function topLabel(){var r=S.profile.rel;return r==="amigos"?"Misiones de amistad":r==="familia"?"Misiones en familia":"Misiones de amor"}
 function viewHero(){
   var e=earnedVal(S.log),L=levelOf(e),bal=balance(S.log),st=streak();
-  var next=L<6?LV_MIN[L]:null,pct=next?Math.round((e-LV_MIN[L-1])/(next-LV_MIN[L-1])*100):100;
+  var next=L<12?LV_MIN[L]:null,pct=next?Math.round((e-LV_MIN[L-1])/(next-LV_MIN[L-1])*100):100;
   var missions=todayMissions(),d=doneToday(),n=missions.filter(function(m){return d[m.id]}).length;
   var who=S.partner?topLabel()+" con "+esc(S.partner):topLabel();
   var banner="";
@@ -761,18 +934,19 @@ function viewHero(){
   return '<div class="top">'+ICON.heart+'<span>'+who+'</span><button class="btn ghost sm" data-a="saveNow" style="margin-left:auto">Guardar progreso</button></div>'+
   '<section class="hero" aria-label="Tus puntos">'+qb('hero')+qh('hero')+'<div class="score"><b>'+bal+'</b><span>puntos</span></div>'+
   '<div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>'+
-  '<div class="lvl"><span>Nivel '+L+' de 6: <strong>'+esc(lvName(L))+'</strong></span><span>'+(next?'Faltan '+(next-e)+' puntos para '+esc(lvName(L+1)):'Nivel máximo')+'</span></div>'+
+  '<div class="lvl"><span>Nivel '+L+' de 12: <strong>'+esc(lvName(L))+'</strong></span><span>'+(next?'Faltan '+(next-e)+' puntos para '+esc(lvName(L+1)):'Nivel máximo')+'</span></div>'+
   '<div class="meta"><span class="pill ok">Hoy '+n+'/'+missions.length+'</span><span class="pill gold">Racha '+st+(st===1?' día':' días')+'</span><span class="pill">Ganados '+e+'</span>'+
   (pending?'<span class="pill gold">En revisión '+pending+'</span>':'')+(S.savedAt?'<span class="pill">Guardado '+timeStr(S.savedAt)+'</span>':'')+'</div></section>'+banner;
 }
+function sendState(o){
+  if(!o)return "";
+  if(Net.state!=="ok")return '<div class="banner bad">Necesitas internet y tu cuenta para que le llegue a tu pareja.</div>';
+  return o.sent===true?'<div class="banner ok">Enviado a tu pareja ✔</div>':(o.sent===false?'<div class="banner bad">No se pudo enviar. Se volverá a intentar cuando haya internet.</div>':'<p class="hint">Enviando…</p>');
+}
 function revBox(m,en){
   var msg=ui.revMsg[en.ts];
-  if(!msg){msg=ui.revMsg[en.ts]=compose("mrep",{eid:en.ts,text:m.text,pts:m.pts},"Cumplí una misión: \""+m.text+"\" (+"+m.pts+"). Te mando la foto aparte. ¿La aceptas?")}
-  var wa='<textarea readonly id="rev-'+en.ts+'">'+esc(msg.text)+'</textarea>'+
-   '<div class="row"><a class="btn" href="'+waLink(msg.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyRev" data-id="'+en.ts+'">Copiar mensaje</button></div>';
-  if(Net.state==="ok")return '<div class="panel revbox"><h3>Tu pareja la está revisando</h3>'+(msg.sent===true?'<div class="banner ok">Enviada ✔ Cuando la acepte, los puntos se suman solos.</div>':(msg.sent===false?'<div class="banner bad">No se pudo enviar. Revisa tu internet o mándala por WhatsApp.</div>':'<p class="hint">Enviando…</p>'))+'<details><summary>Mandarla por WhatsApp (por si acaso)</summary>'+wa+'</details></div>';
-  return '<div class="panel revbox"><h3>Manda esto a tu pareja</h3>'+
-   '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Toca <b>Abrir WhatsApp</b> y manda el mensaje.</li><li>Mándale también la foto de prueba en el mismo chat.</li><li>Tu pareja lo pega en la app y te contesta si la acepta. Pega su respuesta en <b>Pareja</b>.</li></ol>'+wa+'</div>';
+  if(!msg){msg=ui.revMsg[en.ts]={sent:undefined}}
+  return '<div class="panel revbox"><h3>Tu pareja la está revisando</h3>'+sendState(msg)+'<p class="hint">Cuando la acepte, los puntos se suman solos.</p></div>';
 }
 function missionCard(m,done,custom){
   var en=done[m.id],isDone=!!en,rev=isDone&&en.status==="rev";
@@ -785,13 +959,7 @@ function missionCard(m,done,custom){
 }
 function outBox(){
   if(!ui.out)return "";
-  var wa='<textarea id="outText" readonly>'+esc(ui.out.text)+'</textarea>'+
-   '<div class="row"><a class="btn" href="'+waLink(ui.out.text)+'" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="btn ghost" data-a="copyOut">Copiar mensaje</button></div>';
-  if(Net.state==="ok"&&ui.out.env&&S.pairId)return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+
-   (ui.out.sent===true?'<div class="banner ok">Enviado a tu pareja ✔ No hace falta mandarlo por WhatsApp.</div>':(ui.out.sent===false?'<div class="banner bad">No se pudo enviar. Revisa tu internet o mándalo por WhatsApp.</div>':'<p class="hint">Enviando…</p>'))+
-   '<details><summary>Mandarlo por WhatsApp (por si acaso)</summary>'+wa+'</details><button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
-  return '<div class="panel"><h3>Mensaje para tu pareja</h3>'+qb('out')+qh('out')+'<p class="hint">Mándaselo por WhatsApp.</p>'+wa+
-   '<button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
+  return '<div class="panel">'+sendState(ui.out)+'<button class="btn ghost sm" data-a="closeOut">Cerrar</button></div>';
 }
 function proofBox(){
   if(ui.proof){
@@ -811,6 +979,11 @@ function proofBox(){
   }
   return "";
 }
+function isApp(){try{return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}catch(e){return false}}
+function installBox(){
+  if(isApp()||!ui.inst)return "";
+  return '<div class="panel"><h3>Instala la app</h3><p class="hint">Así se abre como una app normal, sin la barra del navegador.</p><button class="btn" data-a="installApp">Instalar app</button></div>';
+}
 function viewHoy(){
   var daily=todayMissions(),d=doneToday(),L=dayLevel();
   var parts=daily.map(function(m){return missionCard(m,d,false)}).join("");
@@ -818,29 +991,26 @@ function viewHoy(){
   var customs=cs.length?'<div class="sec"><h2>Misiones nuevas</h2>'+qbIn('newm')+'</div>'+qh('newm')+'<div class="list">'+cs.map(function(c){return missionCard(c,d,true)}).join("")+'</div>':"";
   var date=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
   var inperson=S.profile.dist==="cerca"?(isMinor(bandOf(S.profile.age))?' Las misiones en persona se hacen en lugares públicos o en casa de familia, y con permiso de sus papás.':''):'';
-  return viewHero()+newsBox()+outBox()+proofBox()+'<div class="sec"><h2>Misiones de hoy</h2><small>'+esc(date)+'</small>'+qbIn('missions')+'</div>'+qh('missions')+
+  return viewHero()+acctBox()+installBox()+newsBox()+outBox()+proofBox()+'<div class="sec"><h2>Misiones de hoy</h2><small>'+esc(date)+'</small>'+qbIn('missions')+'</div>'+qh('missions')+
    '<div class="list">'+parts+'</div>'+
-   '<p class="hint">Hoy se pueden ganar '+dailyTotal(L)+' puntos.'+inperson+'</p>'+customs+
-   '<button class="btn" data-a="share">Compartir mi progreso</button>';
+   '<p class="hint">Hoy se pueden ganar '+dailyTotal(L)+' puntos.'+inperson+'</p>'+customs;
 }
 function viewPremios(){
   var bal=balance(S.log),lv=levelOf(earnedVal(S.log)),note="";
   if(ui.lastRedeem){
-    var txt=(S.me?S.me+": ":"")+"Canjeé mi premio \""+ui.lastRedeem.text+"\" con mis puntos. ¡Me lo debes!";
-    note='<div class="notice"><strong>Premio canjeado: '+esc(ui.lastRedeem.text)+'</strong><span>Avísale a tu pareja para que te lo cumpla.</span>'+
-      '<div class="row"><a class="btn" href="'+waLink(txt)+'" target="_blank" rel="noopener">Avisar por WhatsApp</a><button class="btn ghost" data-a="closeRedeem">Listo</button></div></div>';
+    note='<div class="notice"><strong>Premio canjeado: '+esc(ui.lastRedeem.text)+'</strong><span>'+(S.pairId&&S.pairName?'Le avisamos a tu pareja para que te lo cumpla.':'Cuando te lo cumplan, toca Ya se cumplió.')+'</span>'+
+      '<div class="row"><button class="btn ghost" data-a="closeRedeem">Listo</button></div></div>';
   }
   var pendBox="";
   if(S.pending.length){
     pendBox='<div class="sec"><h2>Por cumplir</h2>'+qbIn('pend')+'</div>'+qh('pend')+'<div class="list">'+S.pending.map(function(p){
-      var wt=(S.me?S.me+": ":"")+"Canjeé mi premio \""+p.text+"\" con mis puntos. ¡Me lo debes!";
       return '<div class="card reward"><span class="body"><span class="cat" style="color:var(--ok)">Por cumplir</span><span class="txt">'+esc(p.text)+'</span></span>'+
-        '<span class="col"><a class="btn ghost sm" href="'+waLink(wt)+'" target="_blank" rel="noopener">Avisar</a><button class="btn sm" data-a="fulfill" data-id="'+esc(p.rid)+'">Ya se cumplió</button></span></div>';
+        '<span class="col"><button class="btn sm" data-a="fulfill" data-id="'+esc(p.rid)+'">Ya se cumplió</button></span></div>';
     }).join("")+'</div>';
   }
   var items=allRewards().filter(function(r){return !S.pending.some(function(p){return p.rid===r.id})}).map(function(r){
     var locked=lv<r.lvl,can=!locked&&bal>=r.cost,asking=ui.confirm===r.id;
-    var label=(r.mode==="p"?"En persona":r.mode==="d"?"Distancia":"Premio acordado")+" · "+(r.cost<=500?"Tranquilo":"Fuerte");
+    var label=(r.mode==="p"?"En persona":r.mode==="d"?"Distancia":"Premio acordado")+" · "+tierOf(r.cost);
     var sub=locked?'Se desbloquea en el nivel '+r.lvl+': '+esc(lvName(r.lvl)):(can?'Tienes puntos para este premio':'Te faltan '+(r.cost-bal)+' puntos');
     var action=locked?'<button class="btn sm" disabled>Nivel '+r.lvl+'</button>':asking?'<button class="btn sm" data-a="redeemOk" data-id="'+esc(r.id)+'">Confirmar</button>':
       '<button class="btn sm" data-a="redeemAsk" data-id="'+esc(r.id)+'"'+(can?'':' disabled')+'>Canjear</button>';
@@ -856,12 +1026,12 @@ function propCards(){
   var list=S.proposals.slice().reverse().slice(0,20);
   if(!list.length)return '<p class="hint">Aún no hay propuestas de premios.</p>';
   return '<div class="list">'+list.map(function(p){
-    var who=esc(p.from||S.pairName||"Tu pareja"),kind=p.cost<=500?"Tranquilo":"Fuerte",head='<span class="txt">'+esc(p.text)+'</span>',acts="",stat="";
+    var who=esc(p.from||S.pairName||"Tu pareja"),kind=tierOf(p.cost),head='<span class="txt">'+esc(p.text)+'</span>',acts="",stat="";
     if(p.dir==="in"){
       if(p.status==="nueva"){
         stat=who+' propone este premio por '+p.cost+' puntos ('+kind+'). ¿Te parece bien?';
         acts='<div class="row"><button class="btn sm" data-a="propOk" data-id="'+esc(p.id)+'">Aceptar</button><button class="btn ghost sm" data-a="propNo" data-id="'+esc(p.id)+'">Rechazar</button></div>'+
-          '<div class="row"><label>Pedir otro precio<input id="ctr-'+esc(p.id)+'" type="number" min="150" max="1500" value="'+p.cost+'"></label><button class="btn ghost sm" data-a="propCtr" data-id="'+esc(p.id)+'" style="align-self:flex-end">Pedir este precio</button></div>';
+          '<div class="row"><label>Pedir otro precio<input id="ctr-'+esc(p.id)+'" type="number" min="150" max="60000" value="'+p.cost+'"></label><button class="btn ghost sm" data-a="propCtr" data-id="'+esc(p.id)+'" style="align-self:flex-end">Pedir este precio</button></div>';
       }
       else if(p.status==="aceptada")stat='Aceptaste este premio por '+p.cost+' puntos.';
       else if(p.status==="contra")stat='Pediste '+(p.counter>p.cost?'más':'menos')+' puntos: '+p.counter+' en vez de '+p.cost+'. Esperando a '+who+'.';
@@ -885,34 +1055,26 @@ function propCards(){
 function viewPareja(){
   var out=outBox(),paired=S.pairId&&S.pairName;
   var head='<div class="top">'+ICON.heart+'<span>Pareja</span></div>';
-  var recv='<div class="panel"><h3>Pegar un mensaje de tu pareja</h3>'+qb('recv')+qh('recv')+'<p class="hint">Pega aquí el mensaje de tu pareja.</p>'+
-    '<textarea id="inbox" placeholder="Pega aquí el mensaje"></textarea><button class="btn" data-a="readMsg">Leer mensaje</button></div>';
   if(!paired){
-    var waiting=S.pairId?'<div class="banner">Ya mandaste tu mensaje. Cuando tu pareja te conteste, pega su mensaje abajo y toca Leer mensaje.</div>':'';
-    return head+out+newsBox()+onlinePanel()+'<div class="panel"><h2>Enlazarse con tu pareja</h2>'+qb('link')+qh('link')+'<p class="hint">Enlázate para mandarse misiones y premios.</p>'+
-      '<button class="btn" data-a="makeInvite">'+(S.pairId?'Ver mi mensaje otra vez':'Crear mensaje de enlace')+'</button></div>'+waiting+recv;
+    return head+out+newsBox()+onlinePanel();
   }
   var reviews=S.reviews.length?'<div class="panel"><h3>Misiones por revisar</h3>'+qb('rev')+qh('rev')+S.reviews.map(function(r){
-    return '<div class="log"><span class="lg"><span><strong>'+esc(r.from||S.pairName)+'</strong> dice que cumplió: '+esc(r.text)+' (+'+r.pts+').'+(Net.state==='ok'?'':' Mira su foto en WhatsApp.')+'</span></span></div>'+proofImg(r.eid)+'<div class="row"><button class="btn sm" data-a="revOk" data-id="'+r.eid+'">Aceptar</button><button class="btn ghost sm" data-a="revNo" data-id="'+r.eid+'">No cumple</button></div>';
+    return '<div class="log"><span class="lg"><span><strong>'+esc(r.from||S.pairName)+'</strong> dice que cumplió: '+esc(r.text)+' (+'+r.pts+').'+''+'</span></span></div>'+proofImg(r.eid)+'<div class="row"><button class="btn sm" data-a="revOk" data-id="'+r.eid+'">Aceptar</button><button class="btn ghost sm" data-a="revNo" data-id="'+r.eid+'">No cumple</button></div>';
   }).join("")+'</div>':'';
   var sendM='<form class="panel" id="sendMForm"><h3>Ponerle una misión a '+esc(S.pairName)+'</h3>'+qb('sendm')+qh('sendm')+'<p class="hint">Esta semana te quedan '+cmLeft()+' de 5 misiones nuevas.</p>'+
     '<label>Qué tiene que hacer<input id="sText" maxlength="90" required placeholder="Ej: Mándame un audio con tu canción favorita"></label>'+
     '<div class="row"><label>Categoría<select id="sCat">'+Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k]+'</option>'}).join("")+'</select></label><label>Puntos (máximo 20)<input id="sPts" type="number" min="1" max="20" value="10" required></label></div>'+
-    '<button class="btn" type="submit"'+(cmLeft()?'':' disabled')+'>'+(cmLeft()?'Crear mensaje con la misión':'Ya usaste tus 5 de esta semana')+'</button></form>';
-  var prop='<form class="panel" id="propForm"><h3>Proponer un premio para ti</h3>'+qb('propform')+qh('propform')+'<p class="hint">Esta semana te quedan '+crLeft()+' de 10 premios.</p>'+
+    '<button class="btn" type="submit"'+(cmLeft()?'':' disabled')+'>'+(cmLeft()?'Enviar misión':'Ya usaste tus 5 de esta semana')+'</button></form>';
+  var prop='<form class="panel" id="propForm"><h3>Proponer un premio para ti</h3>'+qb('propform')+qh('propform')+'<p class="hint">Esta semana te quedan '+crLeft()+' de 10 premios. Con tu nivel puedes proponer premios de hasta '+TIERS[tiersOpen()-1][1]+' puntos. En el nivel 1 hay premios hasta 5000. Cada nivel que subes se abre un rango más caro.</p>'+
     '<label>Premio<input id="rText" maxlength="90" required placeholder="Ej: Ver un episodio juntos por videollamada"></label>'+
-    '<div class="row"><label>Tipo<select id="rType"><option value="t">Tranquilo (150 a 500)</option><option value="f">Fuerte (600 a 1500)</option></select></label><label>Cuesta (puntos)<input id="rCost" type="number" min="150" max="500" value="200" required></label></div>'+
-    '<button class="btn" type="submit"'+(crLeft()?'':' disabled')+'>'+(crLeft()?'Crear mensaje con el premio':'Ya usaste tus 10 de esta semana')+'</button></form>';
+    '<div class="row"><label>Tipo<select id="rType">'+TIERS.slice(0,tiersOpen()).map(function(t,i){return '<option value="'+i+'">'+t[2]+' ('+t[0]+' a '+t[1]+')</option>'}).join("")+'</select></label><label>Cuesta (puntos)<input id="rCost" type="number" min="150" max="300" value="200" required></label></div>'+
+    '<button class="btn" type="submit"'+(crLeft()?'':' disabled')+'>'+(crLeft()?'Enviar propuesta':'Ya usaste tus 10 de esta semana')+'</button></form>';
   var unlink=ui.unlinkAsk?'<div class="row"><button class="btn" data-a="unlinkOk">Sí, desenlazar</button><button class="btn ghost" data-a="unlinkNo">Cancelar</button></div>':'<button class="btn ghost sm" data-a="unlinkAsk">Desenlazar</button>';
-  return head+out+newsBox()+'<div class="panel"><h2>Enlazados con '+esc(S.pairName)+'</h2>'+qb('paired')+qh('paired')+'<p class="hint">Perfil de tu pareja: '+esc(BANDS[S.pairBand]||"")+', '+esc((RELS[S.pairRel]||"").toLowerCase())+'. '+(S.review?'Tu pareja revisa tus misiones antes de que cuenten los puntos.':'Tus misiones cuentan al enviar la foto, sin esperar a tu pareja.')+'</p>'+unlink+'</div>'+
-    reviews+recv+'<div class="sec"><h2>Propuestas de premios</h2>'+qbIn('props')+'</div>'+qh('props')+propCards()+sendM+prop;
+  return head+out+newsBox()+netWarn()+'<div class="panel"><h2>Enlazados con '+esc(S.pairName)+'</h2>'+qb('paired')+qh('paired')+'<p class="hint">Perfil de tu pareja: '+esc(BANDS[S.pairBand]||"")+', '+esc((RELS[S.pairRel]||"").toLowerCase())+'. '+(S.review?'Tu pareja revisa tus misiones antes de que cuenten los puntos.':'Tus misiones cuentan al enviar la foto, sin esperar a tu pareja.')+'</p>'+unlink+'</div>'+
+    reviews+'<div class="sec"><h2>Propuestas de premios</h2>'+qbIn('props')+'</div>'+qh('props')+propCards()+sendM+prop;
 }
 function viewProgreso(){
   var e=earnedVal(S.log),L=levelOf(e);
-  var rows=LV_MIN.map(function(min,i){
-    var lv=i+1,unl=REWARDS.filter(function(r){return r.lvl===lv&&itemOK(r)}).length;
-    return '<tr'+(lv===L?' class="cur"':'')+'><td>'+lv+'. '+esc(lvName(lv))+'</td><td>'+min+'</td><td>'+dailyTotal(lv)+'</td><td>-'+penaltyFor(lv)+'</td><td>'+(unl?unl+' nuevos':'—')+'</td></tr>';
-  }).join("");
   var log=S.log.slice().sort(function(a,b){return b.ts-a.ts}).slice(0,80),out="",last="";
   log.forEach(function(x){
     if(x.day!==last){var p=x.day.split("-"),dt=new Date(+p[0],+p[1]-1,+p[2]);out+='<div class="day">'+esc(dt.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}))+'</div>';last=x.day}
@@ -920,8 +1082,7 @@ function viewProgreso(){
     out+='<div class="log"><span class="lg">'+(x.proof?'<img class="thumb" alt="Prueba" src="'+x.proof+'">':'')+'<span>'+esc(x.text)+'</span></span><span class="p '+(x.pts<0?'neg':'pos')+'">'+lab+'</span></div>';
   });
   return viewHero()+'<div class="sec"><h2>Niveles</h2><small>Tú vas en el nivel '+L+'</small>'+qbIn('lvl')+'</div>'+qh('lvl')+
-    '<div class="panel"><div class="tw"><table class="lv"><thead><tr><th>Nivel</th><th>Desde</th><th>Al día</th><th>Racha</th><th>Premios</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    '</div>'+
+    '<div class="panel"><h3>Nivel '+L+' de 12: '+esc(lvName(L))+'</h3><p class="hint" style="margin:0">Empezó en '+LV_MIN[L-1]+' puntos. Hoy las misiones dan '+dailyTotal(L)+' puntos al día y puedes proponer premios de hasta '+TIERS[4+L][1]+' puntos.</p>'+(L<12?'<p style="margin:0">Faltan '+(LV_MIN[L]-e)+' puntos para el nivel '+(L+1)+': '+esc(lvName(L+1))+'.</p>':'<p style="margin:0">Llegaste al nivel máximo.</p>')+'<p class="hint" style="margin:0">Toca el ? para ver todos los niveles.</p></div>'+
     '<div class="sec"><h2>Historial</h2>'+qbIn('hist')+'</div>'+qh('hist')+(out?'<div class="panel" style="gap:0">'+out+'</div>':'<div class="empty">Aún no hay movimientos. Completa tu primera misión en la pestaña Hoy.</div>');
 }
 function viewAjustes(){
@@ -929,13 +1090,14 @@ function viewAjustes(){
   var opts=Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k]+'</option>'}).join("");
   return '<div class="top">'+ICON.heart+'<span>Ajustes</span></div>'+
   '<form class="panel" id="pfForm"><h3>Mi perfil</h3>'+qb('prof')+qh('prof')+profileFields("pf")+
-  '<label style="flex-direction:row;align-items:center;gap:10px;color:var(--ink)"><input id="pfReview" type="checkbox" style="width:auto"'+(S.review?' checked':'')+'>(Opcional) Que mi pareja revise mis misiones</label>'+
+  '<label style="flex-direction:row;align-items:center;gap:10px;color:var(--ink)"><input id="pfReview" type="checkbox" style="width:auto"'+(S.review?' checked':'')+'>(Opcional) Que mi pareja revise mis misiones</label>'+qb('review')+qh('review')+
   '<button class="btn" type="submit">Guardar perfil</button></form>'+
   '<form class="panel" id="mForm"><h3>Crear una misión para mí</h3>'+qb('mform')+qh('mform')+'<p class="hint">Esta semana te quedan '+cmLeft()+' de 5.</p>'+
   '<label>Qué hay que hacer<input id="mText" maxlength="90" required placeholder="Ej: Mándale un audio con su canción favorita"></label>'+
   '<div class="row"><label>Categoría<select id="mCat">'+opts+'</select></label><label>Puntos (máximo 20)<input id="mPts" type="number" min="1" max="20" value="10" required></label></div>'+
   '<button class="btn" type="submit"'+(cmLeft()?'':' disabled')+'>'+(cmLeft()?'Agregar misión':'Ya usaste tus 5 de esta semana')+'</button>'+(cm?'<div>'+cm+'</div>':'')+'</form>'+
-  '<div class="panel"><h3>Respaldo del progreso</h3>'+qb('backup')+qh('backup')+'<button class="btn" data-a="backupCopy">Copiar código de respaldo</button><label>Restaurar con un código<textarea id="restoreCode" placeholder="Pega aquí tu código, empieza con MDA1:"></textarea></label><button class="btn ghost" data-a="restoreGo">Restaurar progreso</button></div>'+
+  themePanel()+acctPanel()+notifPanel()+
+  installPanel()+
   '<div class="panel"><h3>Poner la app en la pantalla de inicio</h3>'+qb('home')+qh('home')+'<p class="hint">Toca el ? para ver los pasos.</p></div>'+
   '<div class="panel"><h3>Guía completa</h3><p class="hint">Todo lo que hace la app, en una sola pantalla.</p><button class="btn" data-a="helpOpen">Ver guía</button></div>'+
   '<div class="panel"><h3>Empezar de cero</h3>'+(ui.resetAsk?'<p style="margin:0">Se borran tus puntos, historial, perfil y misiones propias. También se desenlaza tu pareja.</p><div class="row"><button class="btn" data-a="resetOk">Sí, borrar todo</button><button class="btn ghost" data-a="resetNo">Cancelar</button></div>':'<button class="btn ghost" data-a="resetAsk">Borrar mis puntos y datos</button>')+'</div>';
@@ -956,6 +1118,7 @@ function viewNav(){
   return TABS.map(function(t){return '<button data-a="tab" data-id="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'>'+ICON[t[0]]+'<span>'+t[1]+'</span>'+(t[0]==="pareja"&&bc?'<i class="badge">'+bc+'</i>':'')+'</button>'}).join("");
 }
 function render(){
+  applyTheme();
   document.body.setAttribute("data-big",(S.profile.ok&&bandOf(S.profile.age)==="m")?"1":"0");
   var nav=document.getElementById("navwrap");
   if(ui.help){document.getElementById("app").innerHTML=viewAyuda();nav.hidden=true;return}
@@ -970,18 +1133,6 @@ function render(){
 function shareText(){
   var m=todayMissions(),d=doneToday(),n=m.filter(function(x){return d[x.id]}).length,L=levelOf(earnedVal(S.log));
   return (S.me?S.me+" aquí. ":"")+"Hoy llevo "+n+" de "+m.length+" misiones y "+balance(S.log)+" puntos (nivel "+L+", "+lvName(L)+"). Racha: "+streak()+" día"+(streak()===1?"":"s")+". ¿Y tú?";
-}
-function backupCode(){
-  var o=JSON.parse(JSON.stringify(S));o.log.forEach(function(e){delete e.proof});
-  return "MDA1:"+b64(o);
-}
-function restoreFrom(c){
-  try{
-    c=String(c).trim();if(c.indexOf("MDA1:")!==0)return false;
-    var o=JSON.parse(decodeURIComponent(escape(atob(c.slice(5)))));
-    if(!o||typeof o!=="object"||!Array.isArray(o.log))return false;
-    S=clean(o);S.savedAt=Date.now();save();return true;
-  }catch(e){return false}
 }
 function sendOut(type,d,human){setOut(type,d,human);render();window.scrollTo(0,0)}
 document.addEventListener("click",function(ev){
@@ -1012,14 +1163,18 @@ document.addEventListener("click",function(ev){
       Array.prototype.forEach.call(document.querySelectorAll('[data-a="qb"]'),function(b){if(b.getAttribute("data-id")===id)b.setAttribute("aria-expanded",ui.q[id]?"true":"false")});
     },
     helpOk:function(){S.intro=true;ui.help=false;save();render();window.scrollTo(0,0)},
+    installApp:function(){var e=ui.inst;if(!e)return;try{e.prompt();e.userChoice.then(function(c){ui.inst=null;render();if(c&&c.outcome==="accepted")toast("Instalando… busca el ícono en tu pantalla de inicio",5000)})}catch(x){ui.inst=null;render()}},
     helpOpen:function(){ui.help=true;render();window.scrollTo(0,0)},
     clearNews:function(){S.news=[];save();render()},
-    saveNow:function(){doSave();copyText(backupCode(),function(){toast("Progreso guardado. Código de respaldo copiado")},function(){toast("Progreso guardado")});render()},
-    backupCopy:function(){
-      var code=backupCode();
-      copyText(code,function(){toast("Código de respaldo copiado")},function(){var ta=document.getElementById("restoreCode");if(ta){ta.value=code;ta.focus();ta.select()}toast("Copia el código del cuadro")});
-    },
-    restoreGo:function(){var ta=document.getElementById("restoreCode");if(restoreFrom(ta?ta.value:"")){ui.tab="hoy";render();window.scrollTo(0,0);toast("Progreso restaurado")}else toast("Ese código no es válido")},
+    saveNow:function(){doSave();var pr=netStateSave(true);if(pr)pr.then(function(){toast("Progreso guardado en tu cuenta")},function(){toast("No se pudo guardar. Revisa tu internet.")});else toast(Net.state==="login"?"Guardado en este teléfono. Crea tu cuenta para no perderlo.":"Guardado en este teléfono");render()},
+    theme:function(){S.theme=id;save();render()},
+    regMode:function(){ui.regMode=id;render()},
+    acctLogin:function(){doLogin("ac")},
+    forgot:function(){doForgot(id)},
+    logoutAsk:function(){ui.logoutAsk=true;render()},
+    logoutNo:function(){ui.logoutAsk=false;render()},
+    logoutOk:function(){ui.logoutAsk=false;Net.ad.signOut().then(function(){var cm=S.cmCreated,cr=S.crCreated;netStop();S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();ui.tab="hoy";ui.regMode="entrar";render();window.scrollTo(0,0);toast("Sesión cerrada")},function(){toast("No se pudo cerrar la sesión")})},
+    notifOn:function(){try{Notification.requestPermission().then(function(r){render();if(r==="granted")toast("Avisos activados",4000)})}catch(e){toast("Este teléfono no permite avisos")}},
     redeemAsk:function(){ui.confirm=id;render()},
     redeemOk:function(){redeem(id)},
     closeRedeem:function(){ui.lastRedeem=null;render()},
@@ -1035,11 +1190,6 @@ document.addEventListener("click",function(ev){
       if(!S.pairId){S.pairId=rid();S.pairName="";S.joinCode="";save()}
       sendOut("invite",{age:S.profile.age,rel:S.profile.rel},"Te invito a enlazarnos en Misiones de Amor.");
     },
-    readMsg:function(){
-      var ta=document.getElementById("inbox"),r=handleMsg(ta?ta.value:"");
-      if(!r.ok){toast(r.msg,4500);return}
-      toast(r.msg,4500);render();window.scrollTo(0,0);
-    },
     cancelCode:function(){S.pairId="";S.joinCode="";S.pairName="";save();netStop();ui.out=null;render()},
     unlinkAsk:function(){ui.unlinkAsk=true;render()},
     unlinkNo:function(){ui.unlinkAsk=false;render()},
@@ -1052,7 +1202,7 @@ document.addEventListener("click",function(ev){
       var p=S.proposals.filter(function(x){return x.id===id&&x.dir==="in"&&x.status==="nueva"})[0],inp=document.getElementById("ctr-"+id);
       if(!p||!inp)return;
       var c=validCost(inp.value);
-      if(!c){toast("Elige un precio de 150 a 500 (tranquilo) o de 600 a 1500 (fuerte)",4000);return}
+      if(!c){toast("Elige un precio de 150 a 60000 puntos",4000);return}
       if(c===p.cost){toast("Ese es el mismo precio. Mejor toca Aceptar");return}
       p.status="contra";p.counter=c;save();sendOut("rres",{id:id,res:"counter",cost:c},"Acepto tu premio si cuesta "+c+" puntos en vez de "+p.cost+".");
     },
@@ -1063,7 +1213,7 @@ document.addEventListener("click",function(ev){
 });
 function onPick(ev){
   var t=ev.target;
-  if(t.id==="rType"){var st=t.value==="f",ci=document.getElementById("rCost");ci.min=st?600:150;ci.max=st?1500:500;ci.value=st?800:200;return}
+  if(t.id==="rType"){var tr=TIERS[parseInt(t.value,10)]||TIERS[0],ci=document.getElementById("rCost");ci.min=tr[0];ci.max=tr[1];ci.value=Math.round((tr[0]+tr[1])/20)*10;return}
   if(t.id!=="proofFile")return;
   var f=t.files&&t.files[0];if(!f||!ui.proof||ui.proofBusy||ui.lastFile===f)return;ui.lastFile=f;
   var pid=ui.proof;ui.proofBusy=true;ui.proofData=null;render();
@@ -1096,10 +1246,22 @@ document.addEventListener("submit",function(ev){
     if(S.pairId){toast("Ya tienes un código creado. Cancélalo primero.",4000);return}
     S.joinCode=jc;save();netListen();toast("Buscando a tu pareja…",3000);render();return;
   }
-  if(f==="regForm"||f==="pfForm"){
-    var err=applyProfile(f==="regForm"?"reg":"pf");
+  if(f==="acctForm"){doSignup("ac");return}
+  if(f==="loginForm"){doLogin("rg");return}
+  if(f==="regForm"){
+    var needAcct=Net.state==="login",cr=null;
+    if(needAcct){cr=getCred("rg");if(!cr)return}
+    var er=applyProfile("reg");
+    if(er){toast(er,4500);return}
+    if(!needAcct){toast("Listo, a jugar");render();window.scrollTo(0,0);return}
+    toast("Creando tu cuenta…",8000);
+    Net.ad.signUp(cr.e,cr.p).then(function(u){netUser(u);netStateSave(true);toast("Listo, a jugar",4000);render();window.scrollTo(0,0)},function(e){S.profile.ok=false;save();toast(authMsg(e),5000)});
+    return;
+  }
+  if(f==="pfForm"){
+    var err=applyProfile("pf");
     if(err){toast(err,4500);return}
-    toast(f==="regForm"?"Listo, a jugar":"Perfil guardado");render();window.scrollTo(0,0);
+    toast("Perfil guardado");render();window.scrollTo(0,0);
   }
   else if(f==="mForm"){
     var t=document.getElementById("mText").value.trim(),p=Math.max(1,Math.min(20,parseInt(document.getElementById("mPts").value,10)||10));
@@ -1116,8 +1278,8 @@ document.addEventListener("submit",function(ev){
     sendOut("mission",{text:st,cat:sc,pts:sp},"Te puse una misión: \""+st+"\" (+"+sp+" puntos).");
   }
   else if(f==="propForm"){
-    var rt=document.getElementById("rText").value.trim(),strong=document.getElementById("rType").value==="f";
-    var lo=strong?600:150,hi=strong?1500:500,c=Math.max(lo,Math.min(hi,parseInt(document.getElementById("rCost").value,10)||lo));
+    var rt=document.getElementById("rText").value.trim(),tr=TIERS[Math.min(tiersOpen()-1,parseInt(document.getElementById("rType").value,10)||0)]||TIERS[0];
+    var lo=tr[0],hi=tr[1],c=Math.max(lo,Math.min(hi,parseInt(document.getElementById("rCost").value,10)||lo));
     if(!rt)return;
     if(!isClean(rt)){toast(NO_MALO,4500);return}
     if(crLeft()<=0){toast("Ya agregaste tus 10 premios de esta semana");return}
@@ -1136,6 +1298,8 @@ document.addEventListener("visibilitychange",function(){
 window.addEventListener("pagehide",doSave);
 var lost0=S.profile.ok?settle():0;
 netInit();
+window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();ui.inst=e;updInst()});
+window.addEventListener("appinstalled",function(){ui.inst=null;render()});
 render();
 if(lost0>0)toast("Perdiste tu racha: "+lost0+" puntos menos",4500);
 })();
