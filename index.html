@@ -106,6 +106,14 @@ textarea{resize:vertical;min-height:84px}
 .lg{display:flex;align-items:center;gap:10px;min-width:0}
 .thumb{flex:none;width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
 .tw{overflow-x:auto}
+.rrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.rrow.me{background:var(--accent-soft);border-color:var(--accent)}
+.rrow .rn{min-width:30px;font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--muted);text-align:center}
+.rrow.top1 .rn{color:#B88400}.rrow.top2 .rn{color:#7C8794}.rrow.top3 .rn{color:#B26A2B}
+.rrow .rnick{flex:1;font-weight:700;overflow-wrap:anywhere}
+.rrow .rv{min-width:72px;display:flex;flex-direction:column;align-items:flex-end;font-weight:700;line-height:1.15}
+.rrow .rv small{font-weight:500;color:var(--muted);font-size:12px}
+.rbadge{width:30px;height:30px;flex:none}
 .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .sw{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
 .sw span{width:22px;height:22px;border-radius:50%;background:var(--c);flex:none}
@@ -131,8 +139,8 @@ table.lv{width:100%;border-collapse:collapse;font-size:13px}
 .badge{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
-nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
-nav button{position:relative;background:none;border:0;border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:500;color:var(--muted)}
+nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:0}
+nav button{position:relative;background:none;border:0;border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:500;color:var(--muted)}
 nav button svg{width:24px;height:24px}
 nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:16px;font-size:14px;font-weight:500;z-index:30;max-width:calc(100% - 32px);text-align:center}
@@ -287,9 +295,11 @@ function ageHint(age){
 }
 
 /* ---------- Estado ---------- */
+function nickKey(v){return String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"")}
+function validNick(v){v=String(v||"").trim();return nickKey(v).length>=3&&v.length>=3&&v.length<=14&&/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 _.\-]+$/.test(v)&&isClean(v)}
 function nm(v){v=String(v||"").trim().slice(0,30);return isClean(v)?v:""}
 function clean(o){
-  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",outq:[],theme:"rosa",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
+  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",outq:[],theme:"rosa",nick:"",nickKey:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
   if(!o||typeof o!=="object")return b;
   b.me=nm(o.me);b.partner=nm(o.partner);
   var p=o.profile;
@@ -327,7 +337,7 @@ function clean(o){
   (Array.isArray(o.pending)?o.pending:[]).forEach(function(x){if(x&&typeof x.rid==="string"&&typeof x.text==="string")b.pending.push({rid:x.rid,text:x.text.slice(0,90),cost:+x.cost||0,ts:+x.ts||Date.now()})});
   var idRe=/^[A-Za-z0-9]{6,20}$/;
   if(typeof o.pairId==="string"&&idRe.test(o.pairId)){b.pairId=o.pairId;b.pairName=nm(o.pairName);b.pairBand=BANDS[o.pairBand]?o.pairBand:"";b.pairRel=RELS[o.pairRel]?o.pairRel:"";var pa0=parseInt(o.pairAge,10);b.pairAge=(pa0>=10&&pa0<=99)?pa0:({n:11,t:15,a:25,m:55})[o.pairBand]||0}
-  b.theme=(typeof o.theme==="string"&&/^[a-z]{3,10}$/.test(o.theme))?o.theme:"rosa";b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
+  b.nick=(typeof o.nick==="string"&&validNick(o.nick))?o.nick.trim():"";b.nickKey=(b.nick&&o.nickKey===nickKey(b.nick))?o.nickKey:"";b.theme=(typeof o.theme==="string"&&/^[a-z]{3,10}$/.test(o.theme))?o.theme:"rosa";b.rvm=2;b.review=(o.rvm===2)?o.review===true:false;
   b.intro=o.intro===true;b.outq=[];(Array.isArray(o.outq)?o.outq:[]).slice(-50).forEach(function(q){if(q&&typeof q.id==="string"&&typeof q.text==="string"&&q.text.length<6000)b.outq.push({id:q.id.slice(0,40),text:q.text,eid:typeof q.eid==="number"?q.eid:undefined})});b.joinCode=(typeof o.joinCode==="string"&&idRe.test(o.joinCode)&&!b.pairId)?o.joinCode:"";
   b.news=(Array.isArray(o.news)?o.news:[]).filter(function(x){return x&&typeof x.id==="string"&&typeof x.text==="string"&&isClean(x.text)}).map(function(x){return {id:x.id.slice(0,20),text:x.text.slice(0,200),ts:+x.ts||Date.now()}}).slice(-15);
   var st={out:["esperando","aceptada","contra","rechazada","cancelada"],"in":["nueva","aceptada","contra","rechazada","confirmada","cancelada"]};
@@ -346,11 +356,11 @@ function clean(o){
 }
 function load(){try{var raw=localStorage.getItem(KEY);if(raw)return clean(JSON.parse(raw))}catch(e){}return clean(null)}
 var S=load();
-var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{},pf:{},pfReq:{},pfMiss:{},regMode:"crear",logoutAsk:false};
+var ui={tab:"hoy",confirm:null,out:null,lastRedeem:null,resetAsk:false,unlinkAsk:false,proof:null,proofData:null,proofBusy:false,proofErr:"",proofHash:"",view:null,help:false,q:{},revMsg:{},pf:{},pfReq:{},pfMiss:{},regMode:"crear",logoutAsk:false,rk:"p",rkd:{}};
 var toastTimer=null;
 function save(){
   for(var tries=0;tries<60;tries++){
-    try{localStorage.setItem(KEY,JSON.stringify(S));try{netStateSave()}catch(x){}return}catch(e){
+    try{localStorage.setItem(KEY,JSON.stringify(S));try{netStateSave();netRankPut()}catch(x){}return}catch(e){
       if(!(e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014)))return;
       var i=-1;for(var j=0;j<S.log.length;j++){if(S.log[j].proof){i=j;break}}
       if(i<0)return;delete S.log[i].proof;
@@ -511,6 +521,12 @@ function mkFirebase(cfg){
       reset:function(email){return Au.sendPasswordResetEmail(auth,email)},
       stateSave:function(uid,json){return F.setDoc(F.doc(db,"users",uid),{json:json,t:Date.now()})},
       stateLoad:function(uid){return F.getDoc(F.doc(db,"users",uid)).then(function(sn){return sn.exists()?sn.data().json:null})},
+      nickClaim:function(uid,key,oldKey){return F.runTransaction(db,function(tx){var ref=F.doc(db,"nicks",key);return tx.get(ref).then(function(sn){if(sn.exists()){if(sn.data().uid!==uid)throw {code:"nick-taken"}}else tx.set(ref,{uid:uid});if(oldKey&&oldKey!==key)tx.delete(F.doc(db,"nicks",oldKey))})})},
+      nickRelease:function(key){return F.deleteDoc(F.doc(db,"nicks",key))},
+      rankPut:function(uid,o){return F.setDoc(F.doc(db,"ranks",uid),o)},
+      rankDel:function(uid){return F.deleteDoc(F.doc(db,"ranks",uid))},
+      rankTop:function(kind){var q=kind==="streak"?F.query(F.collection(db,"ranks"),F.where("streak",">",0),F.orderBy("streak","desc"),F.limit(100)):F.query(F.collection(db,"ranks"),F.orderBy("pts","desc"),F.limit(100));return F.getDocs(q).then(function(sn){return sn.docs.map(function(d){var x=d.data();x.uid=d.id;return x})})},
+      rankCount:function(kind,val){return F.getCountFromServer(F.query(F.collection(db,"ranks"),F.where(kind,">",val))).then(function(r){return r.data().count})},
       post:function(pair,x){return F.setDoc(F.doc(db,"pairs",pair,"msgs",x.id),{id:x.id,dev:x.dev,text:x.text,t:Date.now()})},
       proofPut:function(pair,eid,data){return F.setDoc(F.doc(db,"pairs",pair,"proofs",String(eid)),{data:data,t:Date.now()})},
       proofGet:function(pair,eid){return F.getDoc(F.doc(db,"pairs",pair,"proofs",String(eid))).then(function(sn){return sn.exists()?sn.data().data:null})},
@@ -533,7 +549,7 @@ function netUser(u){
   if(u&&!u.anon){Net.state="ok";if(was!=="ok")onSignedIn()}
   else{Net.state="login";netStop()}
 }
-function onSignedIn(){netListen();netFlush();netStateSave()}
+function onSignedIn(){netListen();netFlush();netStateSave();ensureNick();netRankPut(true)}
 function netPair(){return S.pairId||S.joinCode||""}
 function netStop(){
   if(Net.unsub){try{Net.unsub()}catch(e){}}
@@ -672,6 +688,96 @@ function applyTheme(){
 function themePanel(){
   return '<div class="panel"><h3>Color de la app</h3>'+qb('theme')+qh('theme')+'<p class="hint">Es opcional. Si no eliges nada, se queda el color rosa de siempre.</p><div class="swatches">'+
    THEMES.map(function(t){return '<button type="button" class="sw'+(S.theme===t[0]?' on':'')+'" data-a="theme" data-id="'+t[0]+'" aria-label="'+t[1]+'" aria-pressed="'+(S.theme===t[0])+'" style="--c:'+t[2]+'"><span></span>'+t[1]+'</button>'}).join("")+'</div></div>';
+}
+
+var rpT=null;
+function netRankPut(now){
+  if(!Net.ad||Net.state!=="ok"||!Net.user||!S.profile.ok||!S.nick||!Net.ad.rankPut)return;
+  clearTimeout(rpT);
+  var go=function(){try{Net.ad.rankPut(Net.user.uid,(function(){var r=rankStreak();return {nick:S.nick,pts:earnedVal(S.log),streak:r.n,sd:r.last||dayKey(),t:Date.now()}})()).catch(function(){})}catch(e){}};
+  if(now)go();else rpT=setTimeout(go,5000);
+}
+function claimNick(nick,cb){
+  var key=nickKey(nick);
+  if(!Net.ad||Net.state!=="ok"||!Net.user||!Net.ad.nickClaim){cb(false,"net");return}
+  Net.ad.nickClaim(Net.user.uid,key,S.nickKey).then(function(){cb(true,key)},function(e){cb(false,String((e&&e.code)||"").indexOf("nick-taken")>=0?"taken":"err")});
+}
+function ensureNick(){
+  if(!S.nick||S.nickKey===nickKey(S.nick))return;
+  claimNick(S.nick,function(ok,r){
+    if(ok){S.nickKey=r;save();netRankPut(true);return}
+    if(r==="taken"){S.nick="";S.nickKey="";save();netRankDel();toast("Tu apodo ya lo usa otra persona. Elige otro en Ajustes, en Mi perfil.",6000);render()}
+  });
+}
+function rankStreak(){
+  var counts={};S.log.forEach(function(e){if(e.kind==="m"&&e.status!=="rev")counts[e.day]=(counts[e.day]||0)+1});
+  var d=new Date(),n=0,last="";
+  if((counts[dayKey(d)]||0)<3)d.setDate(d.getDate()-1);
+  while((counts[dayKey(d)]||0)>=3){if(!n)last=dayKey(d);n++;d.setDate(d.getDate()-1)}
+  return {n:n,last:last};
+}
+function netRankDel(){if(Net.ad&&Net.state==="ok"&&Net.user&&Net.ad.rankDel){try{Net.ad.rankDel(Net.user.uid).catch(function(){})}catch(e){}}}
+var RTIERS=[[0,"Aficionado","#7C8794"],[1500,"Competidor","#B26A2B"],[5000,"Experto","#0F8B7D"],[12000,"Maestro","#2563C9"],[20000,"Élite","#7B3FC4"],[40000,"Campeón","#B88400"],[75000,"Inmortal","#D6245A"]];
+function rtierOf(p){var r=0;for(var i=0;i<RTIERS.length;i++){if(p>=RTIERS[i][0])r=i}return r}
+function rbadge(i){
+  var c=RTIERS[i][2];
+  return '<svg class="rbadge" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l11 4v9c0 7-5 12-11 15C10 27 5 22 5 15V6z" fill="'+c+'"/><path d="M16 8l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" fill="#fff" opacity=".92"/></svg>';
+}
+var FLAME='<svg class="rbadge" viewBox="0 0 32 32" aria-hidden="true"><path d="M17 2c1 5 7 8 7 15a8 8 0 0 1-16 0c0-3 1.5-5 3-6.500.2 2 1 3 2.500 3.500C13 10 15 6 17 2z" fill="#E8590C"/><path d="M16 17c2 2 4 3 4 6a4 4 0 0 1-8 0c0-2 2-3 4-6z" fill="#FFC53D"/></svg>';
+function rankHelp(kind){
+  if(kind==="p")return '<p>Aquí compites con todos los usuarios. El <b>número 1</b> es quien tiene más puntos ganados en total. Solo se ven los 100 primeros. Si no estás entre ellos, ves en qué lugar vas.</p><p>Según tus puntos totales tienes un rango:</p><ul>'+RTIERS.map(function(t,i){var hi=RTIERS[i+1]?RTIERS[i+1][0]:null;return '<li><b>'+t[1]+'</b>: '+(hi?'de '+t[0]+' a '+hi+' puntos':'desde '+t[0]+' puntos')+'</li>'}).join("")+'</ul><p>Solo apareces si pones un apodo en Ajustes, en Mi perfil. Gastar puntos en premios no te baja del ranking.</p>';
+  return '<p>El <b>número 1</b> es quien lleva más días seguidos sin perder la racha. Solo se ven los 100 primeros. Si no estás entre ellos, ves en qué lugar vas.</p><ul><li>Un día solo cuenta cuando ya hiciste <b>3 misiones o más</b> ese día. Con 1 o 2 todavía no suma.</li><li>Las misiones que tu pareja todavía no acepta (en revisión) no cuentan.</li><li>Si pierdes la racha, bajas en el ranking.</li><li>Si pasan dos días sin que abras la app, tu racha deja de contar.</li></ul><p>Solo apareces si pones un apodo en Ajustes, en Mi perfil.</p>';
+}
+function rankLoad(kind,force){
+  if(Net.state!=="ok"||!Net.ad||!Net.ad.rankTop)return;
+  var k=kind==="r"?"streak":"pts",d=ui.rkd[kind];
+  if(d&&d.busy)return;
+  if(d&&!force&&Date.now()-d.t<60000)return;
+  ui.rkd[kind]=d={t:d?d.t:0,busy:true,list:d?d.list:null,pos:null,err:false};
+  var mine=kind==="r"?rankStreak().n:earnedVal(S.log),yk=(function(){var x=new Date();x.setDate(x.getDate()-1);return dayKey(x)})();
+  function fin(){d.busy=false;d.t=Date.now();if(ui.tab==="ranking")render()}
+  Net.ad.rankTop(kind==="r"?"streak":"pts").then(function(list){
+    list=list.filter(function(x){return x&&typeof x.nick==="string"&&validNick(x.nick)&&(k==="pts"||+x.streak>0)});
+    if(kind==="r")list=list.filter(function(x){return typeof x.sd==="string"&&x.sd>=yk});
+    list.sort(function(a,b){return (+b[k]||0)-(+a[k]||0)});
+    d.list=list.slice(0,100);d.err=false;
+    var uid=Net.user&&Net.user.uid,inList=d.list.some(function(x){return x.uid===uid});
+    if(S.nick&&!inList&&mine>0&&Net.ad.rankCount){
+      return Net.ad.rankCount(k,mine).then(function(n){d.pos=n+1;fin()},function(){fin()});
+    }
+    fin();
+  },function(){d.err=true;fin()});
+}
+function rankRow(x,i,kind){
+  var v=kind==="r"?+x.streak:+x.pts,me=Net.user&&x.uid===Net.user.uid;
+  var right=kind==="r"?'<span class="rv">'+v+'<small>'+(v===1?'día':'días')+'</small></span>':'<span class="rv">'+v+'<small>'+esc(RTIERS[rtierOf(v)][1])+'</small></span>';
+  return '<div class="rrow'+(i<3?' top'+(i+1):'')+(me?' me':'')+'"><span class="rn">'+(i+1)+'</span><span class="rnick">'+esc(x.nick)+(me?' (tú)':'')+'</span>'+(kind==="r"?FLAME:rbadge(rtierOf(v)))+right+'</div>';
+}
+function viewRanking(){
+  var kind=ui.rk,d=ui.rkd[kind],head='<div class="top">'+ICON.heart+'<span>Ranking global</span></div>';
+  var seg='<div class="row"><button class="btn'+(kind==="p"?'':' ghost')+'" data-a="rk" data-id="p">Puntos</button><button class="btn'+(kind==="r"?'':' ghost')+'" data-a="rk" data-id="r">Rachas</button></div>';
+  var key=kind==="p"?"rankp":"rankr";
+  var title='<div class="sec"><h2>'+(kind==="p"?'Ranking de puntos':'Ranking de rachas')+'</h2>'+qbIn(key)+'</div>'+qh(key);
+  var body="";
+  if(Net.state!=="ok")body='<div class="banner bad">Necesitas internet y tu cuenta para ver el ranking.</div>';
+  else{
+    if(!S.nick)body+='<div class="banner">Para aparecer en el ranking pon un apodo en <b>Ajustes</b>, en <b>Mi perfil</b>. Es opcional.</div>';
+    if(!d||(d.busy&&!d.list))body+='<p class="hint">Cargando el ranking…</p>';
+    else{
+      if(d.err)body+='<div class="banner bad">No se pudo cargar el ranking. Inténtalo de nuevo.</div>';
+      if(d.list){
+        body+=d.list.length?'<div class="panel" style="gap:6px;padding:10px">'+d.list.map(function(x,i){return rankRow(x,i,kind)}).join("")+'</div>':'<div class="empty">Todavía no hay nadie en este ranking.</div>';
+        var uid=Net.user&&Net.user.uid,inList=d.list.some(function(x){return x.uid===uid});
+        if(S.nick&&!inList){
+          var mine=kind==="r"?rankStreak().n:earnedVal(S.log);
+          if(kind==="r"&&mine<1)body+='<div class="panel"><p style="margin:0">Todavía no tienes racha. Haz 3 misiones hoy para entrar.</p></div>';
+          else if(d.pos)body+='<div class="panel rrow me" style="flex-direction:row"><span class="rn" style="min-width:40px">'+d.pos+'</span><span class="rnick">'+esc(S.nick)+' (tú)</span>'+(kind==="r"?FLAME:rbadge(rtierOf(mine)))+'<span class="rv">'+mine+'<small>'+(kind==="r"?(mine===1?'día':'días'):esc(RTIERS[rtierOf(mine)][1]))+'</small></span></div><p class="hint">Estás en el lugar '+d.pos+'. Solo se muestran los 100 primeros.</p>';
+        }
+      }
+    }
+    body+='<button class="btn ghost sm" data-a="rkRefresh">Actualizar</button>';
+  }
+  return head+seg+title+body;
 }
 function notifPanel(){
   var perm=("Notification" in window)?Notification.permission:"no";
@@ -822,13 +928,15 @@ function redeem(id){
 function applyProfile(px,first){
   function v(id){return document.getElementById(px+id)}
   var me=v("Me").value.trim(),pa=v("Partner").value.trim(),age=parseInt(v("Age").value,10),rel=v("Rel").value,dist=v("Dist").value;
-  if(!isClean(me)||!isClean(pa))return NO_MALO;
+  var nk=(v("Nick")?v("Nick").value:"").trim();
+  if(!isClean(me)||!isClean(pa)||(nk&&!isClean(nk)))return NO_MALO;
+  if(nk&&!validNick(nk))return "El apodo debe tener de 3 a 14 letras o números.";
   if(!me||!pa)return "Escribe tu nombre y el de la otra persona.";
   if(!(age>=10&&age<=99))return "La app es para personas de 10 años o más.";
   var b=bandOf(age);
   if(b==="n"&&isRom(rel))return "Para tu edad la app es solo de amistad o familia.";
   if(S.pairId&&S.pairName){var why=compat(age,rel,S.pairAge,S.pairRel);if(why)return why}
-  S.me=me.slice(0,30);S.partner=pa.slice(0,30);
+  S.me=me.slice(0,30);S.partner=pa.slice(0,30);if(v("Nick")){var oldNick=S.nick;S.nick=nk;if(oldNick&&!nk){netRankDel();if(S.nickKey&&Net.ad&&Net.ad.nickRelease&&Net.state==="ok"){try{Net.ad.nickRelease(S.nickKey).catch(function(){})}catch(e){}}S.nickKey=""}}
   S.profile={ok:true,age:age,rel:rel,dist:dist==="cerca"?"cerca":"lejos"};
   var rv=document.getElementById(px+"Review");if(rv)S.review=rv.checked;
   save();return null;
@@ -842,6 +950,7 @@ var ICON={
  premios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5C10 8.5 8 7.5 8 6s1.5-2 2.5-1.5S12 7 12 8.5zm0 0c2 0 4-1 4-2.5s-1.5-2-2.5-1.5S12 7 12 8.5z"/></svg>',
  pareja:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 19c.5-3.2 2.7-5 5.5-5s5 1.8 5.5 5M15 14.2c.7-.2 1.3-.3 2-.3 2.2 0 3.6 1.4 4 4.1"/></svg>',
  progreso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V5M16 20v-7M22 20H2"/></svg>',
+ ranking:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21v-8H4v8M14 21V4h-4v17M20 21v-11h-4v11M3 21h18"/></svg>',
  ajustes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>'
 };
 
@@ -876,7 +985,7 @@ var HELP={
 function qb(k){return '<button type="button" class="qb" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
 function qbIn(k){return '<button type="button" class="qb in" data-a="qb" data-id="'+k+'" aria-label="Ayuda" aria-expanded="'+(ui.q[k]?"true":"false")+'">?</button>'}
 function lvlHelp(){return '<p>Estos son todos los niveles. Gastar puntos en premios no te baja de nivel. El nivel nuevo se aplica a las misiones del día siguiente.</p><ul>'+LV_MIN.map(function(m,i){var n=i+1;return '<li><b>Nivel '+n+': '+esc(lvName(n))+'</b>. Desde '+m+' puntos. Misiones: '+dailyTotal(n)+' puntos al día. Si pierdes la racha: -'+penaltyFor(n)+'. Premios hasta '+TIERS[4+n][1]+' puntos.</li>'}).join('')+'</ul>'}
-function qh(k){return '<div class="qhelp" data-k="'+k+'"'+(ui.q[k]?'':' hidden')+'>'+(k==="lvl"?lvlHelp():HELP[k])+'</div>'}
+function qh(k){return '<div class="qhelp" data-k="'+k+'"'+(ui.q[k]?'':' hidden')+'>'+(k==="lvl"?lvlHelp():k==="rankp"?rankHelp("p"):k==="rankr"?rankHelp("r"):HELP[k])+'</div>'}
 function viewAyuda(){
   function steps(a){return '<ol class="steps">'+a.map(function(t,i){return '<li><b class="n">'+(i+1)+'</b><span>'+t+'</span></li>'}).join("")+'</ol>'}
   return '<div class="top">'+ICON.heart+'<span>Misiones de Amor</span></div>'+
@@ -890,13 +999,14 @@ function viewAyuda(){
    '<h3>iPhone</h3>'+steps(['Abre el link de la app en <b>Safari</b>.','Toca el botón de <b>compartir</b>: un cuadro con una flecha hacia arriba.','Toca <b>Agregar a pantalla de inicio</b>.'])+'</div>'+
    '<button class="btn" data-a="helpOk">Volver</button>';
 }
-var TABS=[["hoy","Hoy"],["premios","Premios"],["pareja","Pareja"],["progreso","Progreso"],["ajustes","Ajustes"]];
+var TABS=[["hoy","Hoy"],["premios","Premios"],["pareja","Pareja"],["progreso","Progreso"],["ranking","Ranking"],["ajustes","Ajustes"]];
 
 function profileFields(px){
   var p=S.profile,age=p.age||"";
   var rel=Object.keys(RELS).map(function(k){return '<option value="'+k+'"'+(p.rel===k?' selected':'')+(age&&age<13&&isRom(k)?' disabled':'')+'>'+RELS[k]+'</option>'}).join("");
   return '<div class="row"><label>Tu nombre<input id="'+px+'Me" value="'+esc(S.me)+'" maxlength="30" autocomplete="off" required></label>'+
    '<label>Nombre de la otra persona<input id="'+px+'Partner" value="'+esc(S.partner)+'" maxlength="30" autocomplete="off" required></label></div>'+
+   '<label>Apodo para el ranking (opcional)<input id="'+px+'Nick" value="'+esc(S.nick)+'" maxlength="14" autocomplete="off" placeholder="Ej: Luna23"></label><p class="hint">Si escribes un apodo, aparecerás en el ranking global y todos los usuarios lo verán. No uses tu nombre completo ni datos personales. Cada apodo es único: si otra persona ya lo usa, tendrás que elegir otro (ponerlo con mayúsculas, espacios o acentos distintos no cuenta como otro). Si lo dejas vacío, no apareces.</p>'+
    '<div class="row"><label>Tu edad<input id="'+px+'Age" type="number" min="10" max="99" value="'+age+'" required></label>'+
    '<label>Qué son<select id="'+px+'Rel">'+rel+'</select></label></div>'+
    '<p class="hint" id="'+px+'Hint">'+esc(ageHint(age))+'</p>'+
@@ -1124,7 +1234,7 @@ function render(){
   if(ui.help){document.getElementById("app").innerHTML=viewAyuda();nav.hidden=true;return}
   if(!S.profile.ok){document.getElementById("app").innerHTML=viewRegistro();nav.hidden=true;return}
   nav.hidden=false;
-  var v={hoy:viewHoy,premios:viewPremios,pareja:viewPareja,progreso:viewProgreso,ajustes:viewAjustes}[ui.tab]();
+  var v={hoy:viewHoy,premios:viewPremios,pareja:viewPareja,progreso:viewProgreso,ranking:viewRanking,ajustes:viewAjustes}[ui.tab]();
   document.getElementById("app").innerHTML=v;
   document.getElementById("nav").innerHTML=viewNav();
 }
@@ -1139,7 +1249,7 @@ document.addEventListener("click",function(ev){
   var el=ev.target.closest("[data-a]");if(!el)return;
   var a=el.getAttribute("data-a"),id=el.getAttribute("data-id");
   var A={
-    tab:function(){ui.tab=id;ui.confirm=null;ui.resetAsk=false;ui.unlinkAsk=false;ui.proof=null;ui.view=null;render();window.scrollTo(0,0)},
+    tab:function(){ui.tab=id;if(id==="ranking")setTimeout(function(){rankLoad(ui.rk)},0);ui.confirm=null;ui.resetAsk=false;ui.unlinkAsk=false;ui.proof=null;ui.view=null;render();window.scrollTo(0,0)},
     open:function(){
       if(doneToday()[id]){ui.view=id;ui.proof=null}else{ui.proof=id;ui.view=null;ui.proofData=null;ui.proofBusy=false;ui.proofErr="";ui.proofHash="";ui.lastFile=null}
       ui.out=null;render();window.scrollTo(0,0);
@@ -1168,12 +1278,14 @@ document.addEventListener("click",function(ev){
     clearNews:function(){S.news=[];save();render()},
     saveNow:function(){doSave();var pr=netStateSave(true);if(pr)pr.then(function(){toast("Progreso guardado en tu cuenta")},function(){toast("No se pudo guardar. Revisa tu internet.")});else toast(Net.state==="login"?"Guardado en este teléfono. Crea tu cuenta para no perderlo.":"Guardado en este teléfono");render()},
     theme:function(){S.theme=id;save();render()},
+    rk:function(){ui.rk=id;render();rankLoad(id)},
+    rkRefresh:function(){rankLoad(ui.rk,true);render()},
     regMode:function(){ui.regMode=id;render()},
     acctLogin:function(){doLogin("ac")},
     forgot:function(){doForgot(id)},
     logoutAsk:function(){ui.logoutAsk=true;render()},
     logoutNo:function(){ui.logoutAsk=false;render()},
-    logoutOk:function(){ui.logoutAsk=false;Net.ad.signOut().then(function(){var cm=S.cmCreated,cr=S.crCreated;netStop();S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();ui.tab="hoy";ui.regMode="entrar";render();window.scrollTo(0,0);toast("Sesión cerrada")},function(){toast("No se pudo cerrar la sesión")})},
+    logoutOk:function(){ui.logoutAsk=false;Net.ad.signOut().then(function(){ui.rkd={};var cm=S.cmCreated,cr=S.crCreated;netStop();S=clean(null);S.cmCreated=cm;S.crCreated=cr;save();ui.tab="hoy";ui.regMode="entrar";render();window.scrollTo(0,0);toast("Sesión cerrada")},function(){toast("No se pudo cerrar la sesión")})},
     notifOn:function(){try{Notification.requestPermission().then(function(r){render();if(r==="granted")toast("Avisos activados",4000)})}catch(e){toast("Este teléfono no permite avisos")}},
     redeemAsk:function(){ui.confirm=id;render()},
     redeemOk:function(){redeem(id)},
@@ -1259,9 +1371,20 @@ document.addEventListener("submit",function(ev){
     return;
   }
   if(f==="pfForm"){
-    var err=applyProfile("pf");
-    if(err){toast(err,4500);return}
-    toast("Perfil guardado");render();window.scrollTo(0,0);
+    var pn=((document.getElementById("pfNick")||{}).value||"").trim(),needClaim=pn&&validNick(pn)&&nickKey(pn)!==S.nickKey;
+    var fin=function(key){
+      var err=applyProfile("pf");
+      if(err){toast(err,4500);return}
+      if(key)S.nickKey=key;save();
+      toast("Perfil guardado");render();window.scrollTo(0,0);
+    };
+    if(needClaim){
+      if(Net.state!=="ok"){toast("Para poner un apodo necesitas internet y tu cuenta.",4500);return}
+      claimNick(pn,function(ok,r){
+        if(ok)fin(r);
+        else toast(r==="taken"?"Ese apodo ya lo usa otra persona. Elige otro.":"No se pudo revisar el apodo. Inténtalo de nuevo.",4500);
+      });
+    }else fin(null);
   }
   else if(f==="mForm"){
     var t=document.getElementById("mText").value.trim(),p=Math.max(1,Math.min(20,parseInt(document.getElementById("mPts").value,10)||10));

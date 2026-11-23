@@ -22,5 +22,29 @@ service cloud.firestore {
         && request.resource.data.json is string
         && request.resource.data.json.size() < 900000;
     }
+    match /ranks/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nick','pts','streak','sd','t'])
+        && request.resource.data.nick is string
+        && request.resource.data.nick.size() >= 3
+        && request.resource.data.nick.size() <= 14
+        && request.resource.data.pts is number
+        && request.resource.data.pts >= 0
+        && request.resource.data.pts < 10000000
+        && request.resource.data.streak is number
+        && request.resource.data.streak >= 0
+        && request.resource.data.streak < 100000
+        && request.resource.data.sd is string
+        && request.resource.data.sd.size() <= 10;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+    match /nicks/{key} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
   }
 }
