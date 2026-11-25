@@ -299,7 +299,7 @@ function nickKey(v){return String(v||"").toLowerCase().normalize("NFD").replace(
 function validNick(v){v=String(v||"").trim();return nickKey(v).length>=3&&v.length>=3&&v.length<=14&&/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 _.\-]+$/.test(v)&&isClean(v)}
 function nm(v){v=String(v||"").trim().slice(0,30);return isClean(v)?v:""}
 function clean(o){
-  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",outq:[],theme:"rosa",nick:"",nickKey:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
+  var b={me:"",partner:"",profile:{ok:false,age:0,rel:"amigos",dist:"lejos"},log:[],customM:[],customR:[],cmCreated:[],crCreated:[],pending:[],owed:[],pairId:"",pairName:"",pairBand:"",pairRel:"",joinCode:"",outq:[],theme:"rosa",nick:"",nickKey:"",review:false,rvm:2,proposals:[],reviews:[],seen:[],savedAt:0,pairAge:0,intro:false,news:[]};
   if(!o||typeof o!=="object")return b;
   b.me=nm(o.me);b.partner=nm(o.partner);
   var p=o.profile;
@@ -334,6 +334,7 @@ function clean(o){
     b.customR.push({id:c.id.slice(0,40),text:c.text.slice(0,90),cost:Math.max(150,Math.min(60000,parseInt(c.cost,10)||150))});
   });
   ["cmCreated","crCreated"].forEach(function(k){b[k]=(Array.isArray(o[k])?o[k]:[]).filter(function(t){return typeof t==="number"}).slice(-300)});
+  b.owed=[];(Array.isArray(o.owed)?o.owed:[]).slice(-50).forEach(function(x){if(x&&typeof x.id==="string"&&typeof x.text==="string")b.owed.push({id:x.id.slice(0,40),text:x.text.slice(0,90),ts:+x.ts||Date.now()})});
   (Array.isArray(o.pending)?o.pending:[]).forEach(function(x){if(x&&typeof x.rid==="string"&&typeof x.text==="string")b.pending.push({rid:x.rid,text:x.text.slice(0,90),cost:+x.cost||0,ts:+x.ts||Date.now()})});
   var idRe=/^[A-Za-z0-9]{6,20}$/;
   if(typeof o.pairId==="string"&&idRe.test(o.pairId)){b.pairId=o.pairId;b.pairName=nm(o.pairName);b.pairBand=BANDS[o.pairBand]?o.pairBand:"";b.pairRel=RELS[o.pairRel]?o.pairRel:"";var pa0=parseInt(o.pairAge,10);b.pairAge=(pa0>=10&&pa0<=99)?pa0:({n:11,t:15,a:25,m:55})[o.pairBand]||0}
@@ -525,7 +526,8 @@ function mkFirebase(cfg){
       nickRelease:function(key){return F.deleteDoc(F.doc(db,"nicks",key))},
       rankPut:function(uid,o){return F.setDoc(F.doc(db,"ranks",uid),o)},
       rankDel:function(uid){return F.deleteDoc(F.doc(db,"ranks",uid))},
-      rankTop:function(kind){var q=kind==="streak"?F.query(F.collection(db,"ranks"),F.where("streak",">",0),F.orderBy("streak","desc"),F.limit(100)):F.query(F.collection(db,"ranks"),F.orderBy("pts","desc"),F.limit(100));return F.getDocs(q).then(function(sn){return sn.docs.map(function(d){var x=d.data();x.uid=d.id;return x})})},
+      rankTop:function(kind){var q=kind==="streak"?F.query(F.collection(db,"ranks"),F.where("streak",">",0),F.orderBy("streak","desc"),F.limit(250)):F.query(F.collection(db,"ranks"),F.orderBy("pts","desc"),F.limit(100));return F.getDocs(q).then(function(sn){return sn.docs.map(function(d){var x=d.data();x.uid=d.id;return x})})},
+      rankEq:function(kind,val){return F.getDocs(F.query(F.collection(db,"ranks"),F.where(kind,"==",val),F.limit(500))).then(function(sn){return sn.docs.map(function(d){var x=d.data();x.uid=d.id;return x})})},
       rankCount:function(kind,val){return F.getCountFromServer(F.query(F.collection(db,"ranks"),F.where(kind,">",val))).then(function(r){return r.data().count})},
       post:function(pair,x){return F.setDoc(F.doc(db,"pairs",pair,"msgs",x.id),{id:x.id,dev:x.dev,text:x.text,t:Date.now()})},
       proofPut:function(pair,eid,data){return F.setDoc(F.doc(db,"pairs",pair,"proofs",String(eid)),{data:data,t:Date.now()})},
@@ -694,7 +696,7 @@ var rpT=null;
 function netRankPut(now){
   if(!Net.ad||Net.state!=="ok"||!Net.user||!S.profile.ok||!S.nick||!Net.ad.rankPut)return;
   clearTimeout(rpT);
-  var go=function(){try{Net.ad.rankPut(Net.user.uid,(function(){var r=rankStreak();return {nick:S.nick,pts:earnedVal(S.log),streak:r.n,sd:r.last||dayKey(),t:Date.now()}})()).catch(function(){})}catch(e){}};
+  var go=function(){try{Net.ad.rankPut(Net.user.uid,(function(){var r=rankStreak();return {nick:S.nick,pts:earnedVal(S.log),streak:r.n,sd:r.last||dayKey(),rt:r.rt||Date.now(),t:Date.now()}})()).catch(function(){})}catch(e){}};
   if(now)go();else rpT=setTimeout(go,5000);
 }
 function claimNick(nick,cb){
@@ -711,10 +713,11 @@ function ensureNick(){
 }
 function rankStreak(){
   var counts={};S.log.forEach(function(e){if(e.kind==="m"&&e.status!=="rev")counts[e.day]=(counts[e.day]||0)+1});
-  var d=new Date(),n=0,last="";
+  var d=new Date(),n=0,last="",rt=0;
   if((counts[dayKey(d)]||0)<3)d.setDate(d.getDate()-1);
   while((counts[dayKey(d)]||0)>=3){if(!n)last=dayKey(d);n++;d.setDate(d.getDate()-1)}
-  return {n:n,last:last};
+  if(last){var ts=S.log.filter(function(e){return e.kind==="m"&&e.status!=="rev"&&e.day===last}).map(function(e){return e.ts}).sort(function(a,b){return a-b});rt=ts[2]||ts[ts.length-1]||0}
+  return {n:n,last:last,rt:rt};
 }
 function netRankDel(){if(Net.ad&&Net.state==="ok"&&Net.user&&Net.ad.rankDel){try{Net.ad.rankDel(Net.user.uid).catch(function(){})}catch(e){}}}
 var RTIERS=[[0,"Aficionado","#7C8794"],[1500,"Competidor","#B26A2B"],[5000,"Experto","#0F8B7D"],[12000,"Maestro","#2563C9"],[20000,"Élite","#7B3FC4"],[40000,"Campeón","#B88400"],[75000,"Inmortal","#D6245A"]];
@@ -726,7 +729,7 @@ function rbadge(i){
 var FLAME='<svg class="rbadge" viewBox="0 0 32 32" aria-hidden="true"><path d="M17 2c1 5 7 8 7 15a8 8 0 0 1-16 0c0-3 1.5-5 3-6.500.2 2 1 3 2.500 3.500C13 10 15 6 17 2z" fill="#E8590C"/><path d="M16 17c2 2 4 3 4 6a4 4 0 0 1-8 0c0-2 2-3 4-6z" fill="#FFC53D"/></svg>';
 function rankHelp(kind){
   if(kind==="p")return '<p>Aquí compites con todos los usuarios. El <b>número 1</b> es quien tiene más puntos ganados en total. Solo se ven los 100 primeros. Si no estás entre ellos, ves en qué lugar vas.</p><p>Según tus puntos totales tienes un rango:</p><ul>'+RTIERS.map(function(t,i){var hi=RTIERS[i+1]?RTIERS[i+1][0]:null;return '<li><b>'+t[1]+'</b>: '+(hi?'de '+t[0]+' a '+hi+' puntos':'desde '+t[0]+' puntos')+'</li>'}).join("")+'</ul><p>Solo apareces si pones un apodo en Ajustes, en Mi perfil. Gastar puntos en premios no te baja del ranking.</p>';
-  return '<p>El <b>número 1</b> es quien lleva más días seguidos sin perder la racha. Solo se ven los 100 primeros. Si no estás entre ellos, ves en qué lugar vas.</p><ul><li>Un día solo cuenta cuando ya hiciste <b>3 misiones o más</b> ese día. Con 1 o 2 todavía no suma.</li><li>Las misiones que tu pareja todavía no acepta (en revisión) no cuentan.</li><li>Si pierdes la racha, bajas en el ranking.</li><li>Si pasan dos días sin que abras la app, tu racha deja de contar.</li></ul><p>Solo apareces si pones un apodo en Ajustes, en Mi perfil.</p>';
+  return '<p>El <b>número 1</b> es quien lleva más días seguidos sin perder la racha. Solo se ven los 100 primeros. Si no estás entre ellos, ves en qué lugar vas.</p><ul><li>Un día solo cuenta cuando ya hiciste <b>3 misiones o más</b> ese día. Con 1 o 2 todavía no suma.</li><li>Las misiones que tu pareja todavía no acepta (en revisión) no cuentan.</li><li>Si pierdes la racha, bajas en el ranking.</li><li>Si dos personas llevan los mismos días, va primero quien llegó antes a esa racha.</li><li>Si pasan dos días sin que abras la app, tu racha deja de contar.</li></ul><p>Solo apareces si pones un apodo en Ajustes, en Mi perfil.</p>';
 }
 function rankLoad(kind,force){
   if(Net.state!=="ok"||!Net.ad||!Net.ad.rankTop)return;
@@ -739,11 +742,15 @@ function rankLoad(kind,force){
   Net.ad.rankTop(kind==="r"?"streak":"pts").then(function(list){
     list=list.filter(function(x){return x&&typeof x.nick==="string"&&validNick(x.nick)&&(k==="pts"||+x.streak>0)});
     if(kind==="r")list=list.filter(function(x){return typeof x.sd==="string"&&x.sd>=yk});
-    list.sort(function(a,b){return (+b[k]||0)-(+a[k]||0)});
+    list.sort(function(a,b){return (+b[k]||0)-(+a[k]||0)||(kind==="r"?(+a.rt||+a.t||0)-(+b.rt||+b.t||0):0)});
     d.list=list.slice(0,100);d.err=false;
     var uid=Net.user&&Net.user.uid,inList=d.list.some(function(x){return x.uid===uid});
     if(S.nick&&!inList&&mine>0&&Net.ad.rankCount){
-      return Net.ad.rankCount(k,mine).then(function(n){d.pos=n+1;fin()},function(){fin()});
+      return Net.ad.rankCount(k,mine).then(function(n){
+        d.pos=n+1;
+        if(kind==="r"&&Net.ad.rankEq){var myrt=rankStreak().rt;return Net.ad.rankEq("streak",mine).then(function(eq){d.pos+=eq.filter(function(x){return x.uid!==uid&&(+x.rt||+x.t||0)<myrt&&typeof x.sd==="string"&&x.sd>=yk}).length;fin()},function(){fin()})}
+        fin();
+      },function(){fin()});
     }
     fin();
   },function(){d.err=true;fin()});
@@ -864,7 +871,9 @@ function handleMsg(text){
   if(t==="redeem"){
     var rn=String(d.text||"").trim().slice(0,90);
     if(!rn||!isClean(rn))return bad("Ese mensaje no es válido.");
-    return done(from+" canjeó su premio \""+rn+"\". ¡Se lo debes!");
+    if(!S.pairId||S.pairId!==env.pair)return bad("Ese mensaje no corresponde a tu pareja.");
+    S.owed.push({id:env.id,text:rn,ts:Date.now()});S.owed=S.owed.slice(-50);
+    return done(from+" canjeó su premio \""+rn+"\". Míralo en Premios, en Premios a deber.");
   }
   if(t==="rprop"){
     var pt=String(d.text||"").trim().slice(0,90),pc=validCost(d.cost);
@@ -964,6 +973,7 @@ var HELP={
  code:'<ol><li>Uno de los dos toca <b>Crear mi código</b>.</li><li>Le da el código a su pareja (en persona, por llamada o como prefieran).</li><li>Tu pareja lo escribe en <b>O escribe el código de tu pareja</b> y toca <b>Unirme</b>.</li></ol><p>Quedan enlazados solos. Después, misiones, fotos y premios se mandan solos.</p><p>El código es privado. No se lo des a nadie más.</p>',
  theme:'<p>Elige el color que más te guste. Solo cambia los colores de la app.</p><ul><li>Es <b>opcional</b>: Rosa es el color de siempre.</li><li>Lo puedes cambiar cuando quieras.</li></ul>',
  prem:'<ol><li>Toca <b>Canjear</b> en un premio para el que te alcancen los puntos.</li><li>Toca <b>Confirmar</b>.</li><li>A tu pareja le llega un aviso.</li><li>Cuando te lo cumplan, toca <b>Ya se cumplió</b>. El premio vuelve a aparecer.</li></ol><p>Los premios con candado se abren al subir de nivel. Los premios cuestan de 150 a 5000 puntos.</p>',
+ owed:'<p>Son los premios que tu pareja canjeó y que <b>tú le debes</b>. Cuando se lo cumplas, toca <b>Ya lo cumplí</b> y se quita de la lista.</p>',
  pend:'<p>Son premios que ya canjeaste. Cuando te lo cumpla tu pareja, toca <b>Ya se cumplió</b> y el premio vuelve a aparecer en la lista para canjearlo otra vez.</p>',
  reqs:'<p>Aquí ves qué pasó con cada premio que propusiste:</p><ul><li><b>Esperando respuesta:</b> tu pareja aún no contesta.</li><li><b>Aceptado:</b> ya está en la lista de premios.</li><li><b>Pide cambiar los puntos:</b> quiere que cueste más o menos. Tú decides si aceptas.</li><li><b>No aceptado:</b> tu pareja dijo que no.</li></ul><p>Los premios que te propone tu pareja también salen aquí para que los contestes.</p>',
  newprize:'<ol><li>Ve a <b>Pareja</b>.</li><li>Llena <b>Proponer un premio</b>.</li><li>Tu pareja decide. Verás su respuesta en Premios.</li></ol>',
@@ -1113,9 +1123,16 @@ function viewPremios(){
   }
   var pendBox="";
   if(S.pending.length){
-    pendBox='<div class="sec"><h2>Por cumplir</h2>'+qbIn('pend')+'</div>'+qh('pend')+'<div class="list">'+S.pending.map(function(p){
+    pendBox='<div class="sec"><h2>Premios que te deben</h2>'+qbIn('pend')+'</div>'+qh('pend')+'<div class="list">'+S.pending.map(function(p){
       return '<div class="card reward"><span class="body"><span class="cat" style="color:var(--ok)">Por cumplir</span><span class="txt">'+esc(p.text)+'</span></span>'+
         '<span class="col"><button class="btn sm" data-a="fulfill" data-id="'+esc(p.rid)+'">Ya se cumplió</button></span></div>';
+    }).join("")+'</div>';
+  }
+  var owedBox="";
+  if(S.owed.length){
+    owedBox='<div class="sec"><h2>Premios a deber</h2>'+qbIn('owed')+'</div>'+qh('owed')+'<div class="list">'+S.owed.map(function(o){
+      return '<div class="card reward"><span class="body"><span class="cat" style="color:var(--bad,#C0392B)">Se lo debes a '+esc(S.pairName||"tu pareja")+'</span><span class="txt">'+esc(o.text)+'</span><small>Lo pidió el '+esc(new Date(o.ts).toLocaleDateString("es-MX",{day:"numeric",month:"short"}))+'</small></span>'+
+        '<span class="col"><button class="btn sm" data-a="owedDone" data-id="'+esc(o.id)+'">Ya lo cumplí</button></span></div>';
     }).join("")+'</div>';
   }
   var items=allRewards().filter(function(r){return !S.pending.some(function(p){return p.rid===r.id})}).map(function(r){
@@ -1129,7 +1146,7 @@ function viewPremios(){
   }).join("");
   var minor=isMinor(bandOf(S.profile.age))?'<p class="hint">Los premios en persona se cumplen en lugares públicos o en casa de familia, y con permiso de sus papás.</p>':'';
   var req=S.proposals.length?'<div class="sec"><h2>Premios que pidieron</h2>'+qbIn('reqs')+'</div>'+qh('reqs')+propCards():'';
-  return viewHero()+newsBox()+outBox()+note+req+pendBox+'<div class="sec"><h2>Premios</h2><small>Tienes '+bal+' puntos</small>'+qbIn('prem')+'</div>'+qh('prem')+minor+'<div class="list">'+items+'</div>'+
+  return viewHero()+newsBox()+outBox()+note+owedBox+req+pendBox+'<div class="sec"><h2>Premios</h2><small>Tienes '+bal+' puntos</small>'+qbIn('prem')+'</div>'+qh('prem')+minor+'<div class="list">'+items+'</div>'+
     '<div class="panel"><h3>¿Quieres un premio nuevo?</h3>'+qb('newprize')+qh('newprize')+'<p class="hint">Propónselo a tu pareja.</p><button class="btn" data-a="tab" data-id="pareja">Ir a Pareja</button></div>';
 }
 function propCards(){
@@ -1225,7 +1242,7 @@ function badgeCount(){
 }
 function viewNav(){
   var bc=badgeCount();
-  return TABS.map(function(t){return '<button data-a="tab" data-id="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'>'+ICON[t[0]]+'<span>'+t[1]+'</span>'+(t[0]==="pareja"&&bc?'<i class="badge">'+bc+'</i>':'')+'</button>'}).join("");
+  return TABS.map(function(t){return '<button data-a="tab" data-id="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'>'+ICON[t[0]]+'<span>'+t[1]+'</span>'+(t[0]==="pareja"&&bc?'<i class="badge">'+bc+'</i>':'')+(t[0]==="premios"&&S.owed.length?'<i class="badge">'+S.owed.length+'</i>':'')+'</button>'}).join("");
 }
 function render(){
   applyTheme();
@@ -1289,6 +1306,7 @@ document.addEventListener("click",function(ev){
     notifOn:function(){try{Notification.requestPermission().then(function(r){render();if(r==="granted")toast("Avisos activados",4000)})}catch(e){toast("Este teléfono no permite avisos")}},
     redeemAsk:function(){ui.confirm=id;render()},
     redeemOk:function(){redeem(id)},
+    owedDone:function(){S.owed=S.owed.filter(function(o){return o.id!==id});save();toast("Listo, premio cumplido");render()},
     closeRedeem:function(){ui.lastRedeem=null;render()},
     fulfill:function(){
       var pi=-1;S.pending.forEach(function(p,i){if(p.rid===id&&pi<0)pi=i});
